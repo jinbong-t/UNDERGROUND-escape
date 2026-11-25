@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THE UNDERGROUND · 교실 현황판</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23140d08'/%3E%3Ccircle cx='27' cy='27' r='15' fill='none' stroke='%23d9a441' stroke-width='5'/%3E%3Cpath d='M38 38l13 13' stroke='%23d9a441' stroke-width='7' stroke-linecap='round'/%3E%3Ccircle cx='27' cy='24' r='4' fill='%23f2c66b'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=IBM+Plex+Mono:wght@500;700&family=Noto+Serif+KR:wght@700;900&family=Special+Elite&family=VT323&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0d0906;--line:#3d2d1f;--gold:#d9a441;--gold2:#f2c66b;--ink:#efe4d0;--mute:#9c8a71;--red:#c8463a;--green:#6fbf7a}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",sans-serif;overflow:hidden}
+  body{background:radial-gradient(900px 600px at 85% 0%,rgba(255,188,104,.16),transparent 70%),radial-gradient(ellipse 120% 80% at 50% 120%,rgba(0,0,0,.95),transparent 60%),linear-gradient(180deg,#1a120c,#0d0906 55%,#090604)}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;background:repeating-linear-gradient(0deg,rgba(255,220,180,.025) 0 1px,transparent 1px 30px),repeating-linear-gradient(90deg,rgba(255,220,180,.018) 0 1px,transparent 1px 64px)}
+  .mono{font-family:"IBM Plex Mono",monospace}.serif{font-family:"Gowun Batang",serif}
+  .gold{color:var(--gold)}.mute{color:var(--mute)}
+  #app{position:relative;height:100vh;display:flex;flex-direction:column;padding:2.2vh 2.4vw 1.4vh}
+  /* header */
+  .hd{display:flex;align-items:center;justify-content:space-between;gap:2vw;margin-bottom:2vh}
+  .logo .ey{font-family:"IBM Plex Mono",monospace;letter-spacing:.4em;font-size:1.1vw;color:var(--gold)}
+  .logo .tt{font-family:"Gowun Batang",serif;font-weight:700;font-size:2.6vw;letter-spacing:-.01em;text-shadow:0 0 30px rgba(217,164,65,.25)}
+  .clock{font-family:"VT323",monospace;font-size:4.2vw;color:var(--gold2);text-shadow:0 0 14px rgba(242,198,107,.5);line-height:1}
+  .stat{display:flex;gap:1.4vw}
+  .stat div{text-align:center;border:1px solid var(--line);background:rgba(33,23,16,.8);border-radius:6px;padding:.8vh 1.2vw}
+  .stat b{display:block;font-family:"VT323",monospace;font-size:2.8vw;color:var(--gold2);line-height:1}
+  .stat span{font-size:.85vw;color:var(--mute);letter-spacing:.1em}
+  .tape{height:1vh;border-radius:2px;opacity:.55;background:repeating-linear-gradient(-45deg,#e3b13e 0 14px,#1a1209 14px 28px);margin-bottom:2vh}
+  .main{flex:1;min-height:0;display:flex;gap:1.6vw}
+  /* team cards */
+  .grid{flex:1;display:grid;gap:1.2vw;align-content:stretch}
+  .card{position:relative;background:linear-gradient(180deg,rgba(33,23,16,.95),rgba(20,14,9,.95));border:1px solid var(--line);border-radius:8px;padding:1.4vh 1.1vw;display:flex;flex-direction:column;gap:1vh;overflow:hidden}
+  .card::before{content:"";position:absolute;top:8px;left:8px;width:18px;height:18px;border-top:2px solid rgba(217,164,65,.6);border-left:2px solid rgba(217,164,65,.6)}
+  .card.done{border-color:rgba(111,191,122,.6);box-shadow:0 0 30px rgba(111,191,122,.15) inset}
+  .card.fail{border-color:rgba(200,70,58,.6)}
+  .card.flash{animation:flash 1.4s ease 2}
+  @keyframes flash{50%{box-shadow:0 0 0 4px var(--gold2),0 0 50px rgba(242,198,107,.6)}}
+  .c-top{display:flex;justify-content:space-between;align-items:baseline}
+  .c-no{font-family:"Gowun Batang",serif;font-weight:700;font-size:2.2vw;color:var(--gold)}
+  .c-lead{font-size:1vw;color:var(--mute)}
+  .c-room{font-family:"Gowun Batang",serif;font-size:1.7vw;font-weight:700}
+  .c-stage{font-size:.95vw;color:var(--mute);letter-spacing:.06em}
+  .c-time{font-family:"VT323",monospace;font-size:3.6vw;line-height:.9;color:var(--gold2);text-shadow:0 0 12px rgba(242,198,107,.45)}
+  .c-time.low{color:#ff6b5e;text-shadow:0 0 14px rgba(255,90,80,.7);animation:blink 1s steps(2) infinite}
+  @keyframes blink{50%{opacity:.45}}
+  .chips{display:grid;grid-template-columns:repeat(6,1fr);gap:.35vw;margin-top:auto}
+  .chip{text-align:center;border:1px solid var(--line);border-radius:4px;padding:.6vh 0;font-size:.95vw;font-weight:700;color:var(--mute);background:rgba(0,0,0,.25)}
+  .chip.solved{background:rgba(111,191,122,.18);border-color:var(--green);color:#bff0c5}
+  .chip.timeout{background:rgba(200,70,58,.16);border-color:var(--red);color:#f0b2aa}
+  .chip.running{border-color:var(--gold2);color:var(--gold2);animation:pulse 1.4s infinite}
+  @keyframes pulse{50%{box-shadow:0 0 12px rgba(242,198,107,.55)}}
+  .bar{height:.7vh;border-radius:4px;background:rgba(255,255,255,.08);overflow:hidden}.bar i{display:block;height:100%;background:linear-gradient(90deg,#c48d2f,#f2c66b)}
+  .stampx{position:absolute;right:.8vw;top:5vh;transform:rotate(-12deg);border:3px solid var(--green);color:var(--green);font-family:"Special Elite",monospace;font-size:1.5vw;padding:.2vh .6vw;border-radius:4px;letter-spacing:.1em;background:rgba(0,0,0,.35)}
+  .stampx.red{border-color:var(--red);color:var(--red)}
+  .empty{flex:1;display:grid;place-items:center;text-align:center;color:var(--mute);font-size:1.6vw}
+  /* feed */
+  .feed{width:23vw;display:flex;flex-direction:column;background:rgba(10,7,4,.7);border:1px solid var(--line);border-radius:8px;padding:1.4vh 1vw;min-height:0}
+  .feed h3{margin:0 0 1vh;font-family:"IBM Plex Mono",monospace;font-size:.95vw;letter-spacing:.3em;color:#e07a6e}
+  .feed h3::before{content:"● ";animation:blink 1s steps(2) infinite}
+  .fi{border-bottom:1px dashed rgba(217,164,65,.2);padding:.9vh 0;font-size:1.05vw;line-height:1.4}.fi.new{animation:fin .5s ease}
+  .fi .t{font-family:"IBM Plex Mono",monospace;color:var(--mute);font-size:.85vw;margin-right:.4vw}
+  .fi.ok b{color:#bff0c5}.fi.bad b{color:#f0b2aa}.fi.win b{color:var(--gold2)}
+  @keyframes fin{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+  /* video */
+  .vwrap{flex:1;display:flex;align-items:center;justify-content:center;background:#000;border-radius:8px;overflow:hidden;position:relative}
+  .vwrap video,.vwrap iframe{width:100%;height:100%;object-fit:contain;border:0;background:#000}
+  .bigplay{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.45);cursor:pointer}
+  .bigplay span{font-family:"Gowun Batang",serif;font-size:2.4vw;border:2px solid var(--gold);padding:2vh 3vw;border-radius:8px;color:var(--gold2);background:rgba(0,0,0,.5)}
+  /* rank */
+  .rank{flex:1;display:flex;flex-direction:column;gap:1vh;overflow:hidden}
+  .ri{display:grid;grid-template-columns:6vw 1fr 14vw 12vw;align-items:center;gap:1vw;background:linear-gradient(90deg,rgba(33,23,16,.95),rgba(20,14,9,.9));border:1px solid var(--line);border-radius:8px;padding:1.3vh 1.4vw;opacity:0;transform:translateY(20px);animation:rin .6s ease forwards}
+  @keyframes rin{to{opacity:1;transform:none}}
+  .ri .p{font-family:"Gowun Batang",serif;font-weight:700;font-size:2.6vw;color:var(--gold);text-align:center}
+  .ri.top1{border-color:var(--gold2);box-shadow:0 0 40px rgba(242,198,107,.25)}.ri.top1 .p{color:var(--gold2)}
+  .ri .n{font-size:1.9vw;font-weight:800}.ri .n small{font-size:1vw;color:var(--mute);font-weight:400;margin-left:.6vw}
+  .ri .g{font-family:"Gowun Batang",serif;font-size:1.5vw;text-align:center}
+  .ri .s{font-family:"VT323",monospace;font-size:3.4vw;color:var(--gold2);text-align:right;line-height:1}
+  /* notice / standby / ending */
+  .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3vh}
+  .notice{font-family:"Gowun Batang",serif;font-weight:700;font-size:5vw;line-height:1.35;max-width:85vw;text-shadow:0 0 40px rgba(217,164,65,.25);white-space:pre-wrap}
+  .sb-ey{font-family:"IBM Plex Mono",monospace;letter-spacing:.6em;font-size:1.4vw;color:var(--gold)}
+  .sb-tt{font-family:"Gowun Batang",serif;font-weight:700;font-size:6vw;letter-spacing:-.02em;text-shadow:0 0 50px rgba(217,164,65,.35)}
+  .sb-sub{font-size:1.8vw;color:var(--mute)}
+  .scan{width:40vw;height:2px;background:linear-gradient(90deg,transparent,var(--gold2),transparent);animation:scan 2.4s ease-in-out infinite}
+  @keyframes scan{50%{transform:scaleX(.3);opacity:.4}}
+  .script{font-family:"Gowun Batang",serif;font-size:2.1vw;line-height:1.9;max-width:78vw;text-align:left;white-space:pre-wrap;border-left:4px solid var(--red);padding-left:2vw}
+  .script .cur{display:inline-block;width:.6em;background:var(--gold2);animation:blink 1s steps(2) infinite}
+  /* overlay */
+  .ov{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:radial-gradient(circle,rgba(40,10,6,.75),rgba(0,0,0,.92));animation:ovin .4s ease}
+  @keyframes ovin{from{opacity:0}}
+  .ov .box{text-align:center}
+  .ov .big{font-family:"Special Elite",monospace;font-size:7vw;color:#ff5b4e;border:6px solid #ff5b4e;padding:1vh 3vw;transform:rotate(-6deg);display:inline-block;animation:stamp .5s cubic-bezier(.2,1.6,.4,1)}
+  .ov .big.g{color:var(--gold2);border-color:var(--gold2)}
+  @keyframes stamp{from{transform:rotate(-6deg) scale(2.4);opacity:0}}
+  .ov .sub{font-family:"Gowun Batang",serif;font-size:3vw;margin-top:4vh}
+  .siren{position:fixed;inset:0;pointer-events:none;z-index:49;animation:siren .5s linear infinite alternate}
+  @keyframes siren{from{box-shadow:inset 0 0 120px rgba(255,40,40,.6)}to{box-shadow:inset 0 0 120px rgba(40,90,255,.6)}}
+  /* toolbar */
+  .tb{position:fixed;left:50%;bottom:1.4vh;transform:translateX(-50%);z-index:60;display:flex;gap:6px;align-items:center;background:rgba(15,10,6,.92);border:1px solid var(--line);border-radius:10px;padding:8px 10px;transition:opacity .4s,transform .4s;font-size:14px}
+  .tb.hide{opacity:0;transform:translate(-50%,20px);pointer-events:none}
+  .tb button,.tb select{background:rgba(36,26,18,.95);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 11px;font:inherit;cursor:pointer}
+  .tb button.on{background:linear-gradient(180deg,#e9b955,#c48d2f);color:#1a1108;font-weight:700}
+  .tb .sep{width:1px;height:24px;background:var(--line);margin:0 4px}
+  .ft{display:flex;justify-content:center;align-items:center;gap:.8vw;margin-top:1.2vh;font-size:.85vw;color:var(--mute);letter-spacing:.08em}
+  .ft .seal{border:2px solid rgba(200,70,58,.75);border-radius:4px;padding:1px 4px;transform:rotate(-6deg);font-family:"Noto Serif KR",serif;font-weight:900;color:#d0564a;font-size:.7vw;line-height:1.05;text-align:center}
+  .gate{position:fixed;inset:0;z-index:70;display:grid;place-items:center;background:rgba(0,0,0,.85);cursor:pointer}
+  .gate div{text-align:center}.gate b{display:block;font-family:"Gowun Batang",serif;font-size:3vw;color:var(--gold2);margin-bottom:2vh}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="ov"></div>
+<script src="common.js"></script>
+<script type="module">
+
+
+const SHORT = { 1: "국어", 2: "영어", 3: "과학", 4: "기술", 5: "가정", 6: "역사" };
+const ENDING_SCRIPT = "네, 제가 그날 밤 지하에 내려갔습니다.\n저는 도박으로 큰 빚을 졌습니다. 갚을 방법이 없던 차에, 지하 서고 금고에 수십억 원이 있다는 공지를 봤습니다. 개봉 전에 그 돈을 가져가면 아무도 모를 거라고 생각했습니다.\n하지만 서고 구조를 몰라서 통로를 세 번이나 잘못 들어갔고, 금고를 열던 중에 경보가 울렸습니다. 아무것도 가져가지 못한 채 도망쳤습니다.\n발자국, 가죽 섬유, 텀블러, 만년필 잉크까지 남기고 왔으니, 학생들이 찾아낸 것이 당연합니다.\n그 돈은 100년 전 초대 교장 선생님이 학교를 지키려고 모아 둔 돈입니다. 제가 쓸 돈이 아니었습니다.\n금고는 예정대로 재단 입회하에 열릴 겁니다. 이상입니다.";
+const qs = new URLSearchParams(location.search);
+const B = { mode: qs.get("mode") || "standby", cls: +(qs.get("cls") || 0), day: todayKey(), notice: "", teams: [], events: [], config: mergeConfig(null),
+  seen: null, boardAt: 0, unlocked: false, typeIdx: 0, lastKey: "" };
+const $app = document.getElementById("app"), $ov = document.getElementById("ov");
+const fmt = s => { s = Math.max(0, Math.ceil(s)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+const clockStr = () => { const d = new Date(); return [d.getHours(), d.getMinutes(), d.getSeconds()].map(x => String(x).padStart(2, "0")).join(":"); };
+const hhmm = ts => { const d = new Date(ts || Date.now()); return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+
+/* ---- 소리 ---- */
+let ac = null; const A = () => { try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.state === "suspended") ac.resume(); } catch (e) {} return ac; };
+const tone = (f, d, type = "square", vol = .06, t0 = 0, f2) => { const c = A(); if (!c) return; const t = c.currentTime + t0, o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); if (f2) o.frequency.exponentialRampToValueAtTime(f2, t + d); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .01); g.gain.exponentialRampToValueAtTime(.0001, t + d); o.connect(g).connect(c.destination); o.start(t); o.stop(t + d + .05); };
+const sfxOk = () => [523, 659, 784, 1047].forEach((f, i) => tone(f, .25, "triangle", .07, i * .09));
+const sfxBad = () => tone(200, .5, "sawtooth", .06, 0, 90);
+const sfxWin = () => { for (let i = 0; i < 4; i++) { tone(700, .38, "sawtooth", .04, i * .76, 1400); tone(1400, .38, "sawtooth", .04, i * .76 + .38, 700); } [392, 523, 659, 784].forEach((f, i) => tone(f, .9, "triangle", .06, 3 + i * .14)); };
+
+/* ---- 데이터 ---- */
+const myTeams = () => B.teams.filter(t => t.day === B.day && (!B.cls || t.cls === B.cls)).sort((a, b) => a.cls - b.cls || a.group - b.group);
+const evOf = id => B.events.filter(e => e.teamId === id);
+const tName = t => `${B.cls ? "" : t.cls + "반 "}${t.group}모둠`;
+function teamInfo(t) {
+  const sc = computeScore(t, evOf(t.id), B.config);
+  const r = t.route ? t.route[t.roundIdx] : 0, rs = (t.rooms || {})[r] || {};
+  let stage = "", room = "", left = null;
+  if (t.finalResult === "success") { stage = "사건 종결"; room = "범인 검거 성공"; }
+  else if (t.finalResult === "fail") { stage = "사건 종결"; room = "범인 도주"; }
+  else if (t.stage === "video") { stage = "브리핑"; room = "사건 개요 영상 시청"; }
+  else if (t.stage === "popup") { stage = "브리핑"; room = "수사관 배지 발급"; }
+  else if (t.stage === "warrant") { stage = t.finalUnlocked ? "최종 단계" : "영장 심사"; room = t.finalUnlocked ? "사물함 자물쇠 해제 중" : "체포 영장 작성"; }
+  else if (t.stage === "rooms" && r) {
+    room = ROOM_NAMES[r];
+    if (rs.status === "running") { stage = `ROUND ${t.roundIdx + 1}/6 · 수사 중`; left = (rs.startAt + (ROOM_SEC + Number(rs.adjust || 0)) * 1000 - DB.now()) / 1000; }
+    else if (rs.status === "solved") stage = rs.delivered ? "다음 방으로 이동" : "봉인 해제 · 증거 수령 대기";
+    else if (rs.status === "timeout") stage = rs.delivered ? "다음 방으로 이동" : "시간 초과 · 증거 수령 대기";
+    else stage = `ROUND ${t.roundIdx + 1}/6 · 입장 대기`;
+  }
+  return { sc, r, stage, room, left };
+}
+
+/* ---- 화면 ---- */
+function header(title) {
+  const ts = myTeams(); const solved = ts.reduce((n, t) => n + Object.values(t.rooms || {}).filter(x => x.status === "solved").length, 0);
+  const caught = ts.filter(t => t.finalResult === "success").length;
+  return `<div class="hd"><div class="logo"><div class="ey">PROJECT: THE UNDERGROUND</div><div class="tt">${title}</div></div>
+    <div class="stat"><div><b>${ts.length}</b><span>수사팀</span></div><div><b>${solved}</b><span>해제된 봉인</span></div><div><b>${caught}</b><span>범인 검거</span></div></div>
+    <div class="clock" id="clock">${clockStr()}</div></div><div class="tape"></div>`;
+}
+const footer = `<div class="ft"><span>교원학습공동체 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사 여섯 교과 선생님들이 함께 만들었습니다</span></div>`;
+const clsTitle = () => B.cls ? `${B.cls}반 수사 현황판` : "전체 수사 현황판";
+
+function viewStatus() {
+  const ts = myTeams();
+  const cols = ts.length <= 5 ? Math.max(ts.length, 1) : ts.length <= 10 ? 5 : 5;
+  const cards = ts.map(t => { const i = teamInfo(t), done = t.finalResult === "success", fail = t.finalResult === "fail";
+    const solvedN = Object.values(t.rooms || {}).filter(x => x.status === "solved" || x.status === "timeout").length;
+    return `<div class="card ${done ? "done" : ""} ${fail ? "fail" : ""}" data-team="${t.id}">
+      <div class="c-top"><span class="c-no">${tName(t)}</span><span class="c-lead">${esc(t.leader || "")}</span></div>
+      <div class="c-stage">${esc(i.stage)}</div>
+      <div class="c-room">${esc(i.room)}</div>
+      ${i.left != null ? `<div class="c-time ${i.left <= 60 ? "low" : ""}" data-left="${t.id}">${fmt(i.left)}</div>` : `<div class="c-time" style="opacity:.25">--:--</div>`}
+      <div class="bar"><i style="width:${(solvedN / 6) * 100}%"></i></div>
+      <div class="chips">${(t.route || []).map(r => { const st = ((t.rooms || {})[r] || {}).status || ""; return `<div class="chip ${st}">${SHORT[r]}</div>`; }).join("")}</div>
+      ${done ? `<div class="stampx">ARRESTED</div>` : fail ? `<div class="stampx red">ESCAPED</div>` : ""}
+    </div>`; }).join("");
+  return `${header(clsTitle())}<div class="main">
+    ${ts.length ? `<div class="grid" style="grid-template-columns:repeat(${cols},1fr)">${cards}</div>` : `<div class="empty"><div><div class="serif" style="font-size:2.6vw;color:var(--gold)">수사팀 접속 대기 중</div><div style="margin-top:1vh">모둠 태블릿에서 수사관 등록을 하면 이곳에 나타납니다</div></div></div>`}
+    <div class="feed"><h3>LIVE · 수사 속보</h3><div id="feed">${feedHTML()}</div></div></div>${footer}`;
+}
+function feedHTML() {
+  const ids = new Set(myTeams().map(t => t.id)), tm = Object.fromEntries(B.teams.map(t => [t.id, t]));
+  const items = [];
+  B.events.filter(e => ids.has(e.teamId) && (e.type === "correct" || e.type === "timeout")).forEach(e => items.push({ at: e.at, cls: e.type === "correct" ? "ok" : "bad", html: `<b>${tName(tm[e.teamId])}</b> · ${ROOM_NAMES[e.room]} ${e.type === "correct" ? "봉인 해제!" : "시간 초과"}` }));
+  myTeams().filter(t => t.finalResult).forEach(t => items.push({ at: t.finalAt || 0, cls: t.finalResult === "success" ? "win" : "bad", html: `<b>${tName(t)}</b> · ${t.finalResult === "success" ? "범인 검거 성공!" : "범인이 도주했습니다"}` }));
+  items.sort((a, b) => (b.at || 0) - (a.at || 0));
+  return items.slice(0, 12).map(x => `<div class="fi ${x.cls}${x.at && DB.now() - x.at < 6000 ? " new" : ""}"><span class="t">${x.at ? hhmm(x.at) : ""}</span>${x.html}</div>`).join("") || `<div class="mute" style="font-size:1vw">아직 속보가 없습니다</div>`;
+}
+function viewRank() {
+  const ts = myTeams().map(t => ({ t, i: teamInfo(t) })).sort((a, b) => b.i.sc.total - a.i.sc.total);
+  return `${header((B.cls ? B.cls + "반 " : "") + "수사 성과 발표")}<div class="main"><div class="rank">
+    ${ts.map((x, k) => `<div class="ri ${k === 0 ? "top1" : ""}" style="animation-delay:${(ts.length - k) * .35}s"><div class="p">${k + 1}</div>
+      <div class="n">${tName(x.t)}<small>${esc(x.t.leader || "")}</small></div><div class="g">${x.i.sc.grade || (x.t.finalResult ? "" : "수사 진행 중")}</div><div class="s">${x.i.sc.total}</div></div>`).join("") || `<div class="empty">표시할 수사팀이 없습니다</div>`}
+  </div></div>${footer}`;
+}
+function videoHTML(url, poster) {
+  const id = ytId(url), src = (url || "").trim();
+  if (id) return `<iframe src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>`;
+  if (src) return `<video id="bv" src="${esc(src)}" ${poster ? `poster="${poster}"` : ""} playsinline controls></video><div class="bigplay" data-act="play"><span>▶ 사건 브리핑 재생</span></div>`;
+  return "";
+}
+function viewVideo(kind) {
+  const url = kind === "ending" ? B.config.endingVideo : B.config.introVideo;
+  if (kind === "ending" && !(url || "").trim()) return viewScript();
+  const v = videoHTML(url, kind === "intro" ? "intro_poster.jpg" : "");
+  return `<div class="vwrap">${v || `<div class="empty">설정에 영상이 없습니다</div>`}</div>`;
+}
+function viewScript() {
+  return `${header("사건 종결 · 범인의 자백")}<div class="center"><div class="script" id="script"></div></div>${footer}`;
+}
+function viewNotice() { return `${header(clsTitle())}<div class="center"><div class="eyebrow mono gold" style="letter-spacing:.5em;font-size:1.3vw">ANNOUNCEMENT · 수사 본부 공지</div><div class="notice">${esc(B.notice || "잠시 후 수사가 시작됩니다")}</div></div>${footer}`; }
+function viewStandby() {
+  return `<div class="center"><div class="sb-ey">PROJECT: THE UNDERGROUND</div><div class="sb-tt">봉인된 금고와 그림자 도둑</div><div class="scan"></div>
+    <div class="sb-sub">${B.cls ? B.cls + "반 · " : ""}수사 본부가 곧 문을 엽니다</div><div class="clock" id="clock" style="font-size:6vw">${clockStr()}</div></div>${footer}`;
+}
+function toolbar() {
+  const m = (k, l) => `<button class="${B.mode === k ? "on" : ""}" data-act="mode" data-v="${k}">${l}</button>`;
+  return `<div class="tb" id="tb">${m("standby", "대기")}${m("intro", "오프닝 영상")}${m("status", "현황판")}${m("notice", "공지")}${m("rank", "순위 발표")}${m("ending", "엔딩")}<span class="sep"></span>
+    <select data-f="cls"><option value="0">전체 반</option>${[1, 2, 3, 4].map(c => `<option value="${c}" ${B.cls === c ? "selected" : ""}>${c}반</option>`).join("")}</select>
+    <button data-act="editNotice">공지 문구</button><button data-act="fs">전체화면</button></div>`;
+}
+function render(force) {
+  const key = [B.mode, B.cls].join("|");
+  if (!force && key === B.lastKey && (B.mode === "intro" || B.mode === "ending" && (B.config.endingVideo || "").trim())) return; // 영상 재생 중엔 다시 그리지 않음
+  if (!force && key === B.lastKey && B.mode === "ending") return;
+  const html = B.mode === "status" ? viewStatus() : B.mode === "rank" ? viewRank() : B.mode === "intro" ? viewVideo("intro") : B.mode === "ending" ? viewVideo("ending") : B.mode === "notice" ? viewNotice() : viewStandby();
+  if (key !== B.lastKey || force || B.mode !== "rank") { $app.innerHTML = html + toolbar(); }
+  if (key !== B.lastKey && B.mode === "ending" && !(B.config.endingVideo || "").trim()) typeScript();
+  if (key !== B.lastKey && B.mode === "intro") setTimeout(() => playVid(), 300);
+  B.lastKey = key; showTb();
+}
+let typer = null;
+function typeScript() { clearInterval(typer); let i = 0; typer = setInterval(() => { const el = document.getElementById("script"); if (!el) return clearInterval(typer); i += 1; el.innerHTML = esc(ENDING_SCRIPT.slice(0, i)) + `<span class="cur">&nbsp;</span>`; if (i % 3 === 0) tone(2400 + Math.random() * 300, .012, "square", .015); if (i >= ENDING_SCRIPT.length) clearInterval(typer); }, 55); }
+function playVid() { const v = document.getElementById("bv"); if (!v) return; const ok = () => { const bp = $app.querySelector(".bigplay"); bp && bp.remove(); };
+  v.muted = false; v.play().then(ok).catch(() => { v.muted = true; v.play().then(() => { ok(); $app.querySelector(".vwrap").insertAdjacentHTML("beforeend", `<div class="bigplay" data-act="unmuteB" style="inset:auto 2vw 2vh auto;background:none"><span style="font-size:1.4vw">🔊 소리 켜기</span></div>`); }).catch(() => {}); }); }
+
+/* ---- 실시간 이벤트 연출 ---- */
+async function overlay(big, sub, gold, ms = 4200, siren) {
+  $ov.innerHTML = `${siren ? `<div class="siren"></div>` : ""}<div class="ov"><div class="box"><div class="big ${gold ? "g" : ""}">${big}</div><div class="sub">${sub}</div></div></div>`;
+  await new Promise(r => setTimeout(r, ms)); $ov.innerHTML = "";
+}
+function detect() {
+  const ids = new Set(myTeams().map(t => t.id)), tm = Object.fromEntries(B.teams.map(t => [t.id, t]));
+  const keys = new Set([...B.events.filter(e => e.type === "correct" || e.type === "timeout").map(e => e.id), ...B.teams.filter(t => t.finalResult).map(t => "F" + t.id)]);
+  if (!B.seen) { B.seen = keys; return; }
+  const fresh = [...keys].filter(k => !B.seen.has(k)); B.seen = keys;
+  if (B.mode !== "status") return;
+  for (const k of fresh) {
+    if (k[0] === "F") { const t = tm[k.slice(1)]; if (!t || !ids.has(t.id)) continue;
+      if (t.finalResult === "success") { sfxWin(); overlay(`<img src="${SUSPECT_IMG.F}" style="display:block;width:14vw;margin:0 auto 2vh;border:4px solid #ddd;filter:grayscale(.3)">ARRESTED`, `${tName(t)} · 그림자 도둑 검거!`, false, 5200, true); } else { sfxBad(); overlay("ESCAPED", `${tName(t)} · 범인이 도주했습니다`, false, 3000); } continue; }
+    const e = B.events.find(x => x.id === k); if (!e || !ids.has(e.teamId)) continue;
+    const card = $app.querySelector(`[data-team="${e.teamId}"]`); card && card.classList.add("flash");
+    e.type === "correct" ? sfxOk() : sfxBad();
+  }
+}
+
+/* ---- 툴바 자동 숨김 ---- */
+let tbT = null; function showTb() { const tb = document.getElementById("tb"); if (!tb) return; tb.classList.remove("hide"); clearTimeout(tbT); tbT = setTimeout(() => tb.classList.add("hide"), 3500); }
+document.addEventListener("mousemove", showTb); document.addEventListener("touchstart", showTb);
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return; const a = b.dataset.act;
+  if (a === "mode") { B.mode = b.dataset.v; return render(true); }
+  if (a === "fs") { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.().catch(() => {}); else document.exitFullscreen?.(); return; }
+  if (a === "play") return playVid();
+  if (a === "unmuteB") { const v = document.getElementById("bv"); if (v) { v.muted = false; v.play().catch(() => {}); } b.remove(); return; }
+  if (a === "editNotice") { const v = prompt("공지 문구를 입력하세요", B.notice || ""); if (v != null) { B.notice = v; B.mode = "notice"; render(true); } return; }
+  if (a === "gate") { A(); B.unlocked = true; document.getElementById("gate")?.remove(); if (B.mode === "intro") playVid(); }
+});
+document.addEventListener("change", e => { if (e.target.dataset.f === "cls") { B.cls = +e.target.value; render(true); } });
+document.addEventListener("keydown", e => { const map = { "1": "standby", "2": "intro", "3": "status", "4": "notice", "5": "rank", "6": "ending" }; if (map[e.key]) { B.mode = map[e.key]; render(true); } if (e.key === "f") document.querySelector('[data-act="fs"]')?.click(); });
+
+setInterval(() => {
+  const c = document.getElementById("clock"); if (c) c.textContent = clockStr();
+  document.querySelectorAll("[data-left]").forEach(el => { const t = B.teams.find(x => x.id === el.dataset.left); if (!t) return; const i = teamInfo(t); if (i.left != null) { el.textContent = fmt(i.left); el.classList.toggle("low", i.left <= 60); } });
+}, 500);
+
+(async () => {
+  $app.innerHTML = `<div class="center mute">수사 본부 연결 중…</div>`;
+  document.body.insertAdjacentHTML("beforeend", `<div class="gate" id="gate" data-act="gate"><div><b>교실 현황판</b><span class="mute">화면을 한 번 눌러 주세요 (영상 소리·효과음 허용)<br>단축키 1 대기 · 2 오프닝 · 3 현황판 · 4 공지 · 5 순위 · 6 엔딩 · F 전체화면</span></div></div>`);
+  await DB.init();
+  render(true);
+  const live = () => { if (B.mode === "status") render(true); detect(); };
+  DB.watchCol("teams", ts => { B.teams = ts; live(); });
+  DB.watchGroup("events", evs => { B.events = evs; live(); });
+  DB.watchDoc("config/main", c => { B.config = mergeConfig(c); });
+  DB.watchDoc("board/main", d => { if (!d || !d.at || d.at === B.boardAt) return; const first = !B.boardAt; B.boardAt = d.at; if (first && Date.now() - d.at > 6 * 3600e3) return;
+    if (d.notice != null) B.notice = d.notice; if (d.cls != null) B.cls = +d.cls; if (d.mode) B.mode = d.mode; render(true); });
+})();
+</script>
+</body>
+</html>

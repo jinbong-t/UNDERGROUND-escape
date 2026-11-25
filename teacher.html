@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>THE UNDERGROUND · 교사 대시보드</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23140d08'/%3E%3Ccircle cx='27' cy='27' r='15' fill='none' stroke='%23d9a441' stroke-width='5'/%3E%3Cpath d='M38 38l13 13' stroke='%23d9a441' stroke-width='7' stroke-linecap='round'/%3E%3Ccircle cx='27' cy='24' r='4' fill='%23f2c66b'/%3E%3Cpath d='M25 26h4l1.5 8h-7z' fill='%23f2c66b'/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Noto+Sans+KR:wght@400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ug.css">
+<style>
+  :root{--bg:#120d09;--panel:#1d1610;--line:#3a2c1f;--gold:#d9a441;--ink:#f3e9d8;--mute:#a8957a;--red:#c8463a;--green:#5fae6b}
+  html,body{background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",sans-serif}
+  .serif{font-family:"Gowun Batang",serif}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px}
+  .gold{color:var(--gold)} .mute{color:var(--mute)}
+  .btn{border-radius:10px;padding:8px 14px;font-weight:700;user-select:none}
+  .btn:disabled{opacity:.35}
+  .btn-gold{background:var(--gold);color:#1a1209} .btn-line{border:1px solid var(--line);background:#241b13;color:var(--ink)} .btn-red{background:var(--red);color:#fff}
+  .tab{padding:10px 16px;border-bottom:2px solid transparent;font-weight:700;color:var(--mute)} .tab.on{color:var(--gold);border-color:var(--gold)}
+  table{border-collapse:collapse;width:100%} th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:14px;vertical-align:middle}
+  th{color:var(--mute);font-weight:600;font-size:12px;white-space:nowrap}
+  input,select,textarea{background:#241b13;border:1px solid var(--line);border-radius:8px;padding:7px 9px;color:var(--ink)}
+  .pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:700}
+  .req{animation:pulse 1.4s infinite} @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(217,164,65,.5)}50%{box-shadow:0 0 0 6px rgba(217,164,65,0)}}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:16px;z-index:50}
+</style>
+</head>
+<body>
+<div id="app" class="max-w-7xl mx-auto p-4"></div>
+<div id="modal"></div>
+<footer style="text-align:center;font-size:12px;color:#9c8a71;padding:20px 16px 28px;border-top:1px solid #3a2c1f;margin-top:24px"><div style="letter-spacing:.1em;color:#c9b48a">교원학습공동체 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사</div><div style="margin-top:3px">여섯 교과 선생님들이 함께 만든 수사 본부 교사 대시보드 · PROJECT: THE UNDERGROUND</div></footer>
+<script src="common.js"></script>
+<script type="module">
+
+
+/* ================= 교사 대시보드 ================= */
+const T = { ok: LS.session.getItem("ug_pin_ok") === "1", tab: "live", teams: [], events: [], reqs: [], config: mergeConfig(null), rawConfig: null,
+  cls: 0, room: 0, day: todayKey(), pin: "", edit: null, tick: null, lastReqCount: 0 };
+const $app = document.getElementById("app"), $modal = document.getElementById("modal");
+const evOf = id => T.events.filter(e => e.teamId === id);
+const remain = t => { const r = t.route[t.roundIdx], rs = (t.rooms || {})[r] || {}; if (rs.status !== "running" || !rs.startAt) return null; return (rs.startAt + (ROOM_SEC + Number(rs.adjust || 0)) * 1000 - DB.now()) / 1000; };
+const fmt = s => { s = Math.max(0, Math.ceil(s)); return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"); };
+const finalState = t => t.finalResult === "success" ? ["성공", "var(--green)"] : t.finalResult === "fail" ? ["검거 실패", "var(--red)"] : t.finalUnlocked ? [`입력 가능 · 남은 ${2 - (t.finalTries || 0)}회`, "var(--gold)"] : t.stage === "warrant" ? ["교사 확인 대기", "var(--mute)"] : ["-", "var(--mute)"];
+const roomStatusText = t => { const r = t.route[t.roundIdx], rs = (t.rooms || {})[r] || {};
+  if (t.stage === "video") return "영상 시청"; if (t.stage === "popup") return "안내 팝업"; if (t.stage === "warrant") return "체포 영장";
+  if (!rs.status) return `${ROOM_NAMES[r]} · 시작 전`; if (rs.status === "running") return `${ROOM_NAMES[r]} · 진행 중`;
+  if (!rs.delivered) return `${ROOM_NAMES[r]} · 봉투 대기`; return `${ROOM_NAMES[r]} → 이동 중`; };
+
+function render() {
+  clearInterval(T.tick);
+  if (!T.ok) return renderPin();
+  const openReqs = T.reqs.filter(q => q.status === "open" && (!T.room || q.room === T.room) && (!T.cls || q.cls === T.cls)).sort((a, b) => (a.at || 0) - (b.at || 0));
+  $app.innerHTML = `
+  <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+    <div><div class="text-xs gold tracking-[.3em]">TEACHER DASHBOARD</div><div class="serif text-2xl">THE UNDERGROUND</div></div>
+    <div class="flex flex-wrap items-center gap-2 text-sm">
+      ${DB.live ? `<span class="pill" style="background:#20351f;color:#9fd3a5">Firebase 연결</span>` : `<span class="pill" style="background:#3a2c1f;color:var(--gold)">체험 모드</span>`}
+      <select data-f="day">${[...new Set([todayKey(), ...T.teams.map(t => t.day)])].filter(Boolean).sort().map(d => `<option value="${d}" ${T.day === d ? "selected" : ""}>${d.slice(0, 2)}/${d.slice(2)}</option>`).join("")}<option value="" ${!T.day ? "selected" : ""}>전체 날짜</option></select>
+      <select data-f="cls"><option value="0">전체 반</option>${[1, 2, 3, 4].map(c => `<option value="${c}" ${T.cls === c ? "selected" : ""}>${c}반</option>`).join("")}</select>
+      <select data-f="room"><option value="0">전체 방</option>${[1, 2, 3, 4, 5, 6].map(r => `<option value="${r}" ${T.room === r ? "selected" : ""}>${ROOM_NAMES[r]}</option>`).join("")}</select>
+    </div>
+  </div>
+  <div class="flex gap-1 mb-4 border-b" style="border-color:var(--line)">
+    ${[["live", "실시간 현황"], ["result", "결과·내보내기"], ["settings", "설정"]].map(([k, n]) => `<button class="tab ${T.tab === k ? "on" : ""}" data-act="tab" data-v="${k}">${n}</button>`).join("")}
+  </div>
+  ${T.tab === "live" ? `
+    <div class="panel p-4 mb-4">
+      <div class="flex items-center justify-between mb-2"><div class="font-bold">증거 봉투 요청 <span class="gold">${openReqs.length}</span></div><span class="text-xs mute">정답(또는 시간 초과) 모둠이 생기면 여기에 뜹니다</span></div>
+      <div class="flex flex-wrap gap-2">${openReqs.length ? openReqs.map(q => `<div class="req rounded-xl px-4 py-3 flex items-center gap-3" style="background:#2a2017;border:1px solid var(--gold)">
+        <div><div class="font-bold">${ROOM_NAMES[q.room]} · ${q.cls}반 ${q.group}모둠</div><div class="text-xs mute">${esc(q.leader)} · ${q.solved ? "정답" : "미해결"}${q.last ? " · <b class='gold'>+극비 파일</b>" : ""}</div></div>
+        <button class="btn btn-gold" data-act="deliver" data-id="${q.id}">전달 완료</button></div>`).join("") : `<div class="mute text-sm">대기 중인 요청이 없습니다.</div>`}</div>
+    </div>
+    ${classDone()}
+    <div class="panel overflow-x-auto"><table>
+      <thead><tr><th>반·모둠</th><th>팀장 / 팀원</th><th>현재</th><th>남은 시간</th><th>완료 방</th><th>힌트</th><th>오답</th><th>점수</th><th>최종 코드</th><th></th></tr></thead>
+      <tbody>${teamsView().map(t => { const sc = computeScore(t, evOf(t.id), T.config); const rm = remain(t); const [fs, fc] = finalState(t);
+        return `<tr><td class="font-bold whitespace-nowrap">${t.cls}반 ${t.group}모둠</td><td><div>${esc(t.leader)}</div><div class="text-xs mute">${esc(t.members)}</div></td>
+        <td class="whitespace-nowrap">${roomStatusText(t)}<div class="text-xs mute">ROUND ${t.roundIdx + 1}/6</div></td>
+        <td class="tabular-nums font-bold" data-timer="${t.id}" style="${rm != null && rm <= 60 ? "color:var(--red)" : ""}">${rm == null ? "-" : fmt(rm)}</td>
+        <td>${sc.done}/6${sc.unsolved ? ` <span class="pill" style="background:#3b1d19;color:#f0b4ac">미해결 ${sc.unsolved}</span>` : ""}</td>
+        <td>${sc.hints}</td><td>${sc.wrongs}</td><td class="font-bold gold">${sc.sum + sc.finalScore - (sc.fail ? 150 : 0) + Number(t.scoreAdjust || 0)}</td>
+        <td><span style="color:${fc}" class="text-sm font-semibold">${fs}</span></td>
+        <td><button class="btn btn-line text-xs" data-act="manage" data-id="${t.id}">관리</button></td></tr>`; }).join("") || `<tr><td colspan="10" class="mute text-center py-8">등록된 모둠이 없습니다.</td></tr>`}</tbody></table></div>
+    <div class="mt-4 panel p-4"><div class="flex flex-wrap items-center gap-2"><b class="gold mr-2">교실 현황판 원격 조정</b>
+      ${[["standby", "대기"], ["intro", "오프닝 영상"], ["status", "현황판"], ["notice", "공지"], ["rank", "순위 발표"], ["ending", "엔딩"]].map(([k, l]) => `<button class="btn btn-line" style="padding:8px 12px" data-act="board" data-v="${k}">${l}</button>`).join("")}
+      <input id="bnotice" class="flex-1" style="min-width:180px" placeholder="공지 문구 (공지 버튼과 함께 전송)">
+      <a class="btn btn-line" style="padding:8px 12px" href="board.html" target="_blank">현황판 열기 ↗</a></div>
+      <div class="text-xs mute mt-2">교실 TV/전자칠판에서 board.html을 열어 두면, 여기서 누른 화면으로 바로 바뀝니다. (위에서 고른 반이 현황판에 표시됩니다)</div></div>
+    <div class="mt-4 flex justify-end gap-2"><button class="btn btn-line" data-act="intro">인트로 영상 재생</button><button class="btn btn-gold" data-act="ending">엔딩 영상 재생</button></div>`
+  : T.tab === "result" ? renderResult() : renderSettings()}
+  `;
+  T.tick = setInterval(() => { document.querySelectorAll("[data-timer]").forEach(el => { const t = T.teams.find(x => x.id === el.dataset.timer); const rm = t && remain(t); el.textContent = rm == null ? "-" : fmt(rm); el.style.color = rm != null && rm <= 60 ? "var(--red)" : ""; }); }, 1000);
+}
+function teamsView() {
+  return T.teams.filter(t => (!T.day || t.day === T.day) && (!T.cls || t.cls === T.cls) && (!T.room || (t.stage === "rooms" && t.route[t.roundIdx] === T.room)))
+    .sort((a, b) => a.cls - b.cls || a.group - b.group);
+}
+function classDone() {
+  const out = [1, 2, 3, 4].map(c => { const ts = T.teams.filter(t => t.cls === c && (!T.day || t.day === T.day)); if (!ts.length) return ""; const d = ts.filter(t => t.finalResult).length;
+    return `<span class="pill" style="${d === ts.length ? "background:#20351f;color:#9fd3a5" : "background:#2a2017;color:var(--mute)"}">${c}반 최종 입력 ${d}/${ts.length}${d === ts.length ? " · 엔딩 영상 OK" : ""}</span>`; }).join(" ");
+  return out.trim() ? `<div class="mb-3 flex flex-wrap gap-2">${out}</div>` : "";
+}
+
+/* ---------- 결과 ---------- */
+function renderResult() {
+  const rows = teamsView().map(t => ({ t, sc: computeScore(t, evOf(t.id), T.config) }));
+  return `<div class="panel overflow-x-auto mb-4"><table><thead><tr><th>반·모둠</th><th>팀장</th>${[1, 2, 3, 4, 5, 6].map(r => `<th>${ROOM_NAMES[r]}</th>`).join("")}<th>최종</th><th>조정</th><th>총점</th><th>등급</th></tr></thead>
+  <tbody>${rows.map(({ t, sc }) => `<tr><td>${t.cls}반 ${t.group}모둠</td><td>${esc(t.leader)}</td>${[1, 2, 3, 4, 5, 6].map(r => `<td>${sc.rooms[r].score ?? "-"}${sc.rooms[r].status === "timeout" ? "<span class='text-xs mute'> 미해결</span>" : ""}</td>`).join("")}
+  <td>${t.finalResult ? sc.finalScore + (sc.fail ? " (-150)" : "") : "-"}</td><td>${Number(t.scoreAdjust || 0) || ""}</td><td class="font-bold gold">${sc.total}</td><td>${sc.grade || "-"}</td></tr>`).join("") || `<tr><td colspan="12" class="mute text-center py-8">기록이 없습니다.</td></tr>`}</tbody></table></div>
+  <button class="btn btn-gold" data-act="csv">CSV 내보내기</button> <button class="btn btn-line" data-act="csvCopy">결과 복사</button> <span id="csvMsg" class="text-sm mute"></span>`;
+}
+function exportCsv(copyOnly) {
+  const head = ["날짜", "반", "모둠", "팀장", "팀원", ...[1, 2, 3, 4, 5, 6].map(r => ROOM_NAMES[r]), "최종", "검거실패", "조정", "총점", "등급", "힌트수", "오답수"];
+  const lines = [head].concat(teamsView().map(t => { const sc = computeScore(t, evOf(t.id), T.config);
+    return [t.day, t.cls, t.group, t.leader, t.members, ...[1, 2, 3, 4, 5, 6].map(r => sc.rooms[r].score ?? ""), t.finalResult ? sc.finalScore : "", sc.fail ? "Y" : "", t.scoreAdjust || 0, sc.total, sc.grade, sc.hints, sc.wrongs]; }));
+  const csv = "﻿" + lines.map(l => l.map(x => `"${String(x ?? "").replace(/"/g, '""')}"`).join(",")).join("\n");
+  const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = `underground_결과_${T.day || "전체"}.csv`; a.click();
+}
+
+/* ---------- 확인 대화상자 (confirm 대체) ---------- */
+function uiConfirm(text) {
+  return new Promise(res => {
+    const box = document.createElement("div"); box.className = "modal"; box.style.zIndex = 60;
+    box.innerHTML = `<div class="panel p-6 max-w-sm w-full"><p class="mb-5">${esc(text)}</p><div class="flex gap-2"><button class="btn btn-line flex-1" data-c="0">취소</button><button class="btn btn-red flex-1" data-c="1">확인</button></div></div>`;
+    box.addEventListener("click", e => { const c = e.target.closest("[data-c]"); if (!c) return; e.stopPropagation(); box.remove(); res(c.dataset.c === "1"); });
+    document.body.appendChild(box);
+  });
+}
+/* ---------- 관리 모달 ---------- */
+function manage(id) {
+  const t = T.teams.find(x => x.id === id); if (!t) return;
+  const r = t.route[t.roundIdx];
+  $modal.innerHTML = `<div class="modal"><div class="panel p-6 max-w-lg w-full">
+    <div class="flex justify-between items-start mb-4"><div><div class="font-bold text-lg">${t.cls}반 ${t.group}모둠 · ${esc(t.leader)}</div><div class="text-xs mute">${t.route.map((x, i) => `${i === t.roundIdx ? "<b class='gold'>" : ""}${ROOM_NAMES[x]}${i === t.roundIdx ? "</b>" : ""}`).join(" → ")}</div></div><button class="btn btn-line" data-act="close">닫기</button></div>
+    <div class="space-y-4 text-sm">
+      <div><div class="mute mb-1">점수 조정 (현재 ${t.scoreAdjust || 0})</div><div class="flex gap-2"><input id="adj" type="number" class="w-28" value="0"><button class="btn btn-line" data-act="adjScore" data-id="${id}">적용</button></div></div>
+      <div><div class="mute mb-1">시간 보정 · ${ROOM_NAMES[r]} (분, +는 연장)</div><div class="flex gap-2"><input id="tadj" type="number" class="w-28" value="1"><button class="btn btn-line" data-act="adjTime" data-id="${id}">적용</button></div></div>
+      <div><div class="mute mb-1">진행 방 수동 변경</div><div class="flex gap-2"><select id="round">${t.route.map((x, i) => `<option value="${i}" ${i === t.roundIdx ? "selected" : ""}>ROUND ${i + 1} · ${ROOM_NAMES[x]}</option>`).join("")}</select><button class="btn btn-line" data-act="setRound" data-id="${id}">이동</button></div>
+        <div class="text-xs mute mt-1">이동한 방이 '시작 전'이 되도록 그 방 기록은 유지됩니다.</div></div>
+      <div class="pt-3 border-t" style="border-color:var(--line)"><button class="btn btn-red" data-act="reset" data-id="${id}">기록 초기화</button> <span class="text-xs mute">리허설·오류 복구용. 점수·힌트·오답이 모두 지워집니다.</span></div>
+    </div></div></div>`;
+}
+async function resetTeam(id) {
+  if (!(await uiConfirm("이 모둠의 모든 기록을 지울까요?"))) return;
+  const evs = await DB.listCol(`teams/${id}/events`);
+  for (const e of evs) await DB.del(`teams/${id}/events/${e.id}`);
+  for (const q of T.reqs.filter(q => q.teamId === id)) await DB.del("requests/" + q.id);
+  await DB.update("teams/" + id, { roundIdx: 0, stage: "video", rooms: {}, finalTries: 0, finalUnlocked: false, finalResult: "", unlockFails: 0, unlockLockedUntil: 0, scoreAdjust: 0, unlockKey: DB.DEL });
+  $modal.innerHTML = "";
+}
+
+/* ---------- 엔딩 영상 ---------- */
+function intro() {
+  const id = ytId(T.config.introVideo), src = (T.config.introVideo || "").trim();
+  $modal.innerHTML = `<div class="modal"><div class="panel p-4 max-w-4xl w-full">
+    <div class="flex justify-between mb-3"><div class="font-bold">인트로(오프닝) 영상</div><button class="btn btn-line" data-act="close">닫기</button></div>
+    ${id ? `<div class="aspect-video bg-black rounded-xl overflow-hidden"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div>`
+      : src ? `<video class="w-full rounded-xl bg-black" src="${esc(src)}" poster="intro_poster.jpg" controls autoplay playsinline></video>` : `<div class="mute p-6">설정에 인트로 영상이 없습니다.</div>`}
+  </div></div>`;
+}
+function ending() {
+  const id = ytId(T.config.endingVideo);
+  $modal.innerHTML = `<div class="modal"><div class="panel p-4 max-w-4xl w-full">
+    <div class="flex justify-between mb-3"><div class="font-bold">엔딩 영상</div><button class="btn btn-line" data-act="close">닫기</button></div>
+    ${id ? `<div class="aspect-video bg-black rounded-xl overflow-hidden"><iframe class="w-full h-full" src="https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div>`
+    : (T.config.endingVideo || "").trim() ? `<video class="w-full rounded-xl bg-black" src="${esc(T.config.endingVideo.trim())}" controls autoplay playsinline></video>`
+    : `<div class="p-6 rounded-xl" style="background:#241b13"><div class="gold font-bold mb-3">영상 링크가 아직 없습니다 · 대체 낭독 멘트</div><p class="leading-loose text-lg serif">"네, 제가 그날 밤 지하에 내려갔습니다.<br>저는 도박으로 큰 빚을 졌습니다. 갚을 방법이 없던 차에, 지하 서고 금고에 수십억 원이 있다는 공지를 봤습니다. 개봉 전에 그 돈을 가져가면 아무도 모를 거라고 생각했습니다.<br>하지만 서고 구조를 몰라서 통로를 세 번이나 잘못 들어갔고, 금고를 열던 중에 경보가 울렸습니다. 아무것도 가져가지 못한 채 도망쳤습니다.<br>발자국, 가죽 섬유, 텀블러, 만년필 잉크까지 남기고 왔으니, 학생들이 찾아낸 것이 당연합니다.<br>그 돈은 100년 전 초대 교장 선생님이 학교를 지키려고 모아 둔 돈입니다. 제가 쓸 돈이 아니었습니다.<br>금고는 예정대로 재단 입회하에 열릴 겁니다. 이상입니다."</p></div>`}
+  </div></div>`;
+}
+
+/* ---------- 설정 ---------- */
+function renderSettings() {
+  const c = T.edit || (T.edit = JSON.parse(JSON.stringify(T.config)));
+  const rot = c.rotation;
+  return `<div class="space-y-4">
+  <div class="panel p-4 text-sm"><b class="gold">정답은 원문으로 저장되지 않습니다.</b> 새 정답을 입력하면 해시로 바꿔 저장하고, 비워 두면 기존 값이 유지됩니다. ${T.rawConfig ? "" : "<span style='color:var(--red)'>· 아직 서버에 설정이 없어 기본값을 쓰는 중입니다. [저장]을 한 번 눌러 주세요.</span>"}</div>
+  <div class="panel p-4 grid md:grid-cols-2 gap-3 text-sm">
+    <label>인트로 영상 <span class="mute">(intro.mp4 파일 이름 또는 YouTube 링크)</span><input class="w-full mt-1" data-cfg="introVideo" value="${esc(c.introVideo)}" placeholder="https://youtu.be/..."></label>
+    <label>엔딩 영상 <span class="mute">(파일 이름 또는 YouTube 링크)</span><input class="w-full mt-1" data-cfg="endingVideo" value="${esc(c.endingVideo)}" placeholder="https://youtu.be/..."></label>
+    <label>최종 코드(사물함) 새 정답<input class="w-full mt-1" data-cfg="finalNew" placeholder="${c.finalHash ? "설정됨 · 바꿀 때만 입력" : "미설정"}"></label>
+  </div>
+  ${[1, 2, 3, 4, 5, 6].map(r => { const rc = c.rooms[r]; return `<div class="panel p-4 text-sm">
+    <div class="flex items-center justify-between mb-3"><div class="font-bold text-base">ROOM 0${r} · ${ROOM_NAMES[r]}</div>
+      <label class="flex items-center gap-2">키패드 <select data-room="${r}" data-k="keypad"><option value="num" ${rc.keypad === "num" ? "selected" : ""}>숫자</option><option value="alpha" ${rc.keypad === "alpha" ? "selected" : ""}>영문</option></select></label></div>
+    <div class="mute mb-1">코드 (위에서부터 순서대로 입력, '점수' 체크는 방마다 1개)</div>
+    ${rc.codes.map((cd, i) => `<div class="flex flex-wrap gap-2 items-center mb-2">
+      <input class="w-36" data-room="${r}" data-code="${i}" data-k="label" value="${esc(cd.label)}">
+      <label class="flex items-center gap-1"><input type="radio" name="main${r}" data-room="${r}" data-code="${i}" data-k="main" ${cd.main ? "checked" : ""}>점수</label>
+      <input class="w-20" type="number" data-room="${r}" data-code="${i}" data-k="len" value="${cd.len || ""}" placeholder="자리">
+      <input class="w-44" data-room="${r}" data-code="${i}" data-k="newAnswer" placeholder="${cd.hash ? "정답 설정됨 · 바꿀 때만" : "정답 입력"}">
+      ${cd.main ? "" : `<input class="flex-1 min-w-40" data-room="${r}" data-code="${i}" data-k="okMsg" value="${esc(cd.okMsg || "")}" placeholder="맞혔을 때 문구">`}
+      ${rc.codes.length > 1 ? `<button class="btn btn-line text-xs" data-act="delCode" data-room="${r}" data-code="${i}">삭제</button>` : ""}</div>`).join("")}
+    <button class="btn btn-line text-xs mb-3" data-act="addCode" data-room="${r}">+ 중간 코드 추가</button>
+    <div class="mute mb-1">미션별 힌트 (비어 있으면 학생 화면에서 버튼이 꺼집니다)</div>
+    ${rc.missions.map((m, i) => `<div class="grid md:grid-cols-12 gap-2 mb-2">
+      <input class="md:col-span-3" data-room="${r}" data-mis="${i}" data-k="name" value="${esc(m.name)}">
+      <textarea rows="2" class="md:col-span-4" data-room="${r}" data-mis="${i}" data-k="h1" placeholder="1단계 힌트(방향만)">${esc(m.h1)}</textarea>
+      <textarea rows="2" class="md:col-span-4" data-room="${r}" data-mis="${i}" data-k="h2" placeholder="2단계 힌트(거의 답)">${esc(m.h2)}</textarea>
+      <button class="btn btn-line text-xs md:col-span-1" data-act="delMis" data-room="${r}" data-mis="${i}">삭제</button></div>`).join("")}
+    <button class="btn btn-line text-xs" data-act="addMis" data-room="${r}">+ 미션 추가</button></div>`; }).join("")}
+  <div class="panel p-4 text-sm">
+    <div class="font-bold mb-2">로테이션표 <span class="mute font-normal">(방 번호 6개, 1국어 2영어 3과학 4기술 5가정 6역사)</span></div>
+    <table><thead><tr><th></th>${[1, 2, 3, 4, 5].map(g => `<th>${g}모둠</th>`).join("")}</tr></thead><tbody>
+    ${[1, 2, 3, 4].map(cl => `<tr><td class="font-bold">${cl}반</td>${[1, 2, 3, 4, 5].map(g => `<td><input class="w-32" data-rot="${cl}-${g}" value="${(rot[cl] && rot[cl][g] || []).join("-")}"></td>`).join("")}</tr>`).join("")}</tbody></table>
+  </div>
+  <div class="flex gap-2 sticky bottom-3"><button class="btn btn-gold" data-act="saveCfg">저장</button><button class="btn btn-line" data-act="resetCfg">기본값으로 되돌리기</button><span id="cfgMsg" class="self-center text-sm"></span></div>
+  </div>`;
+}
+function readSettingsForm() {
+  const c = T.edit; if (!c || !document.querySelector('[data-cfg]')) return;
+  document.querySelectorAll("[data-cfg]").forEach(el => { if (el.dataset.cfg !== "finalNew") c[el.dataset.cfg] = el.value.trim(); });
+  document.querySelectorAll("[data-room]").forEach(el => {
+    const r = el.dataset.room, rc = c.rooms[r], k = el.dataset.k; if (!k) return;
+    if (el.dataset.code != null) { const cd = rc.codes[+el.dataset.code]; if (k === "main") { if (el.checked) rc.codes.forEach((x, i) => x.main = i === +el.dataset.code); } else if (k === "len") cd.len = +el.value || 0; else cd[k] = el.value; }
+    else if (el.dataset.mis != null) rc.missions[+el.dataset.mis][k] = el.value;
+    else rc[k] = el.value;
+  });
+  document.querySelectorAll("[data-rot]").forEach(el => { const [cl, g] = el.dataset.rot.split("-"); const arr = el.value.split(/[^1-6]+/).filter(Boolean).map(Number); c.rotation[cl] = c.rotation[cl] || {}; c.rotation[cl][g] = arr; });
+}
+async function saveSettings() {
+  readSettingsForm();
+  const c = JSON.parse(JSON.stringify(T.edit)), msg = document.getElementById("cfgMsg");
+  for (const k in c.rotation) for (const g in c.rotation[k]) { const a = c.rotation[k][g]; if (a.length !== 6 || new Set(a).size !== 6) { msg.innerHTML = `<span style="color:var(--red)">${k}반 ${g}모둠 로테이션은 1~6이 한 번씩 들어가야 해요.</span>`; return; } }
+  for (const r in c.rooms) { const rc = c.rooms[r]; if (rc.codes.filter(x => x.main).length !== 1) { msg.innerHTML = `<span style="color:var(--red)">${ROOM_NAMES[r]}: '점수' 코드는 1개여야 해요.</span>`; return; }
+    for (const cd of rc.codes) { if (cd.newAnswer) cd.hash = await hashCode("r" + r, cd.newAnswer); delete cd.newAnswer; if (!cd.hash) { msg.innerHTML = `<span style="color:var(--red)">${ROOM_NAMES[r]} ${esc(cd.label)} 정답이 비어 있어요.</span>`; return; } } }
+  const fn = document.querySelector("[data-cfg=finalNew]").value.trim(); if (fn) c.finalHash = await hashCode("final", fn);
+  c.updatedAt = DB.now();
+  await DB.set("config/main", c);
+  T.edit = null; T.rawConfig = c; render(); const m2 = document.getElementById("cfgMsg"); if (m2) m2.innerHTML = `<span style="color:var(--green)">저장했습니다.</span>`;
+}
+
+/* ---------- PIN ---------- */
+function renderPin() {
+  $app.innerHTML = `<div class="max-w-sm mx-auto mt-16 panel p-6 text-center"><div class="text-xs gold tracking-widest mb-1">TEACHER ONLY</div><div class="serif text-2xl mb-4">교사 대시보드</div>
+    <input id="pin" type="password" inputmode="numeric" class="w-full text-center text-2xl mb-3" placeholder="PIN"><div id="pmsg" class="text-sm h-5 mb-2" style="color:var(--red)"></div>
+    <button class="btn btn-gold w-full" data-act="pin">들어가기</button></div>`;
+  setTimeout(() => document.getElementById("pin")?.focus(), 50);
+}
+async function enterPin(v) {
+  const h = await hashCode("pin", v);
+  if (h !== PIN_HASH) { document.getElementById("pmsg").textContent = "PIN이 다릅니다"; return; }
+  LS.session.setItem("ug_pin_ok", "1"); T.ok = true; await becomeAdmin(); start();
+}
+async function becomeAdmin() { try { await DB.set("admins/" + DB.uid, { key: PIN_HASH, at: DB.TS }); } catch (e) { console.warn("admin", e); } }
+
+/* ---------- 이벤트 ---------- */
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  const a = b.dataset.act, id = b.dataset.id;
+  if (a === "pin") return enterPin(document.getElementById("pin").value);
+  if (a === "tab") { if (T.tab === "settings") readSettingsForm(); T.tab = b.dataset.v; return render(); }
+  if (a === "close") { $modal.innerHTML = ""; return; }
+  if (a === "deliver") { const q = T.reqs.find(x => x.id === id); await DB.update("requests/" + id, { status: "done", doneAt: DB.TS }); if (q) await DB.update("teams/" + q.teamId, { [`rooms.${q.room}.delivered`]: true }); return; }
+  if (a === "manage") return manage(id);
+  if (a === "adjScore") { const t = T.teams.find(x => x.id === id); await DB.update("teams/" + id, { scoreAdjust: Number(t.scoreAdjust || 0) + Number(document.getElementById("adj").value || 0) }); $modal.innerHTML = ""; return; }
+  if (a === "adjTime") { const t = T.teams.find(x => x.id === id), r = t.route[t.roundIdx], cur = Number(((t.rooms || {})[r] || {}).adjust || 0); await DB.update("teams/" + id, { [`rooms.${r}.adjust`]: cur + Number(document.getElementById("tadj").value || 0) * 60 }); $modal.innerHTML = ""; return; }
+  if (a === "setRound") { await DB.update("teams/" + id, { roundIdx: Number(document.getElementById("round").value), stage: "rooms" }); $modal.innerHTML = ""; return; }
+  if (a === "reset") return resetTeam(id);
+  if (a === "board") { const n = document.getElementById("bnotice"); await DB.set("board/main", { mode: b.dataset.v, cls: T.cls || 0, ...(n && n.value.trim() ? { notice: n.value.trim() } : {}), at: DB.now() }, true); b.textContent = "✓ " + b.textContent.replace(/^✓ /, ""); return; }
+  if (a === "ending") return ending();
+  if (a === "intro") return intro();
+  if (a === "csv") return exportCsv(false);
+  if (a === "csvCopy") return exportCsv(true);
+  if (a === "saveCfg") return saveSettings();
+  if (a === "resetCfg") { if (await uiConfirm("설정 화면을 기본값으로 되돌릴까요? (저장을 눌러야 반영)")) { T.edit = JSON.parse(JSON.stringify(DEFAULT_CONFIG)); render(); } return; }
+  if (a === "addCode") { readSettingsForm(); T.edit.rooms[b.dataset.room].codes.unshift({ id: "c" + Date.now().toString(36), label: "중간 코드", main: false, len: 4, hash: "", okMsg: "확인! 다음 단서를 찾으세요." }); return render(); }
+  if (a === "delCode") { readSettingsForm(); T.edit.rooms[b.dataset.room].codes.splice(+b.dataset.code, 1); return render(); }
+  if (a === "addMis") { readSettingsForm(); T.edit.rooms[b.dataset.room].missions.push({ name: "새 미션", h1: "", h2: "" }); return render(); }
+  if (a === "delMis") { readSettingsForm(); T.edit.rooms[b.dataset.room].missions.splice(+b.dataset.mis, 1); return render(); }
+});
+document.addEventListener("change", e => { const f = e.target.dataset.f; if (!f) return; if (f === "day") T.day = e.target.value; else T[f] = Number(e.target.value); render(); });
+document.addEventListener("keydown", e => { if (e.key === "Enter" && e.target.id === "pin") enterPin(e.target.value); });
+
+function beep() { try { const c = new AudioContext(), o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.frequency.value = 880; g.gain.value = .08; o.start(); o.stop(c.currentTime + .15); } catch (e) {} }
+const safeRender = () => { if (T.tab === "settings" || $modal.innerHTML) return; render(); };
+function start() {
+  render();
+  DB.watchCol("teams", ts => { T.teams = ts; safeRender(); });
+  DB.watchGroup("events", evs => { T.events = evs; safeRender(); });
+  DB.watchCol("requests", qs => { const n = qs.filter(q => q.status === "open").length; if (n > T.lastReqCount) beep(); T.lastReqCount = n; T.reqs = qs; safeRender(); });
+  DB.watchDoc("config/main", c => { T.rawConfig = c; T.config = mergeConfig(c); if (T.tab !== "settings") safeRender(); });
+}
+(async () => {
+  $app.innerHTML = `<div class="text-center mute p-10">접속 중…</div>`;
+  await DB.init();
+  if (T.ok) { await becomeAdmin(); start(); } else render();
+})();
+</script>
+</body>
+</html>
