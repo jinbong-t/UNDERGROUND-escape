@@ -164,7 +164,7 @@ function header(title) {
     <div class="stat"><div><b>${ts.length}</b><span>수사팀</span></div><div><b>${solved}</b><span>해제된 봉인</span></div><div><b>${caught}</b><span>범인 검거</span></div></div>
     <div class="clock" id="clock">${clockStr()}</div></div><div class="tape"></div>`;
 }
-const footer = `<div class="ft"><span>교원학습공동체 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사 여섯 교과 선생님들이 함께 만들었습니다</span></div>`;
+const footer = `<div class="ft"><span>${CREW} 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사 여섯 교과 선생님들이 함께 만들었습니다 · ${APP_VER}</span></div>`;
 const clsTitle = () => B.cls ? `${B.cls}반 수사 현황판` : "전체 수사 현황판";
 
 function viewStatus() {
@@ -243,7 +243,7 @@ function showClosing() {
   $app.innerHTML = `<div class="center"><div class="ov-stamp">사건 종결<small>CASE CLOSED</small></div>
     <div class="sb-sub" style="color:var(--ink)">진범 · SUSPECT F · LUNAR L</div>
     <div class="notice" style="font-size:3.6vw">명예 수사관 여러분, 수고하셨습니다.</div>
-    <div class="sb-sub" style="font-size:1.4vw">교원학습공동체 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사</div></div>` + toolbar();
+    <div class="sb-sub" style="font-size:1.4vw">${CREW} 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사</div></div>` + toolbar();
   sfxWin();
 }
 function playVid() { const v = document.getElementById("bv"); if (!v) return; const ok = () => { $app.querySelectorAll(".bigplay").forEach(x => x.remove()); };

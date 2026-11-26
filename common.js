@@ -12,6 +12,8 @@ const FIREBASE_CONFIG = {
 };
 
 const FB_VER = "10.12.2";
+const APP_VER = "v1.1 · 2026.11.26";
+const CREW = "WS교수학습법연구회";
 const ROOM_SEC = 15 * 60;
 const PIN_HASH = "2f3dea5d90e31119ea45fdb12146aef7e8ae9e3ed4ba379e80b902fc5dde3431";      // 대시보드 PIN
 const TEACHER_CODE_HASH = "df8de6261d8fc1195a5d09bd180f5d5d599445a856f8f72bef83ac98c39c3e5a"; // 교사 확인 코드
@@ -20,7 +22,7 @@ const ROOM_NAMES = { 1: "국어실", 2: "영어실", 3: "과학실", 4: "기술�
 
 /* 2) 기본 설정값 (정답 원문 없음, 해시만). 교사 대시보드 [설정]에서 바꿀 수 있습니다. */
 const DEFAULT_CONFIG = {
-  version: 3,
+  version: 4,
   introVideo: "intro.mp4",   // 웹앱과 같은 폴더의 영상 파일 또는 YouTube 링크
   endingVideo: "ending.mp4",   // 엔딩(범인 자백) 영상
   rooms: {
@@ -61,8 +63,9 @@ const DEFAULT_CONFIG = {
            { name: "CH.2 · 글자에 봉인된 비밀", h1: "학교가 세워진 날부터 지금까지 남아 있는 네 글자를 찾아, 한자 학습표나 사전으로 각 글자의 획수를 세어 보세요.", h2: "각 글자의 획수에 그 글자의 순서(1~4번째)를 더한 뒤, 일의 자리 숫자만 이어 쓰세요." }] }
   },
   finalHash: "145b91a35d4a4bb9325a84f66b9d9408e5c2f6d2331c9feb93a46e59c537094c",
-  /* 로테이션: 반 → 모둠 → 방 순서 6개. 총괄 라틴 방격 원본으로 바꿔 주세요. */
-  rotation: (() => { const r = {}; for (let c = 1; c <= 4; c++) { r[c] = {}; for (let g = 1; g <= 5; g++) { r[c][g] = [0, 1, 2, 3, 4, 5].map(i => ((g - 1 + i) % 6) + 1); } } return r; })()
+    rotation: (() => {   // 기획서 5-1: 반별 고정 경로, 한 반의 5모둠은 같은 방에서 동시 진행 (1반=A, 2반=B, 3반=C, 4반=D)
+    const R = { 1: [1, 2, 3, 4, 5, 6], 2: [2, 3, 4, 5, 6, 1], 3: [4, 5, 6, 1, 2, 3], 4: [5, 6, 1, 2, 3, 4] };
+    const r = {}; for (let cl = 1; cl <= 4; cl++) { r[cl] = {}; for (let g = 1; g <= 5; g++) r[cl][g] = R[cl].slice(); } return r; })()
 };
 
 const SUSPECTS = [
@@ -95,7 +98,7 @@ function mergeConfig(c) {
   Object.assign(out, c);
   if (!String(out.introVideo || "").trim()) out.introVideo = DEFAULT_CONFIG.introVideo;
   if (!String(out.endingVideo || "").trim()) out.endingVideo = DEFAULT_CONFIG.endingVideo;
-  if (old) { out.rooms = JSON.parse(JSON.stringify(DEFAULT_CONFIG.rooms)); out.finalHash = DEFAULT_CONFIG.finalHash; out.version = DEFAULT_CONFIG.version; }
+  if (old) { out.rooms = JSON.parse(JSON.stringify(DEFAULT_CONFIG.rooms)); out.finalHash = DEFAULT_CONFIG.finalHash; out.rotation = JSON.parse(JSON.stringify(DEFAULT_CONFIG.rotation)); out.version = DEFAULT_CONFIG.version; }
   return out;
 }
 

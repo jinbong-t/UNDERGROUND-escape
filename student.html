@@ -455,10 +455,11 @@ const S = { mode: "", teamId: LS.local.getItem("ug_team") || "", team: null, eve
   login: { cls: 0, group: 0, leader: "", members: "" }, input: SAVED.input || {}, lockUntil: SAVED.lockUntil || 0, msg: "", hintOpen: null, splashDone: false, unsub: [], tick: null, eyeUntil: 0, busy: false };
 const $app = document.getElementById("app"), $modal = document.getElementById("modal");
 const disclaimer = `<footer class="ug-foot"><div class="foot-tape"></div>
-  <div class="foot-row"><span class="foot-badge">JOINT TASK FORCE</span><span class="mono">교원학습공동체 합동수사본부</span></div>
+  <div class="foot-row"><span class="foot-badge">JOINT TASK FORCE</span><span class="mono">${CREW} 합동수사본부</span></div>
   <div class="foot-subj">${["국어", "영어", "과학", "기술", "가정", "역사"].map(x => `<span${x === "가정" ? ' data-act="goTeacher"' : x === "기술" ? ' data-act="goBoard"' : ""}>${x}</span>`).join("")}</div>
   <p>여섯 교과 선생님들이 함께 기획하고 만든 수사 본부입니다.</p>
-  <p class="foot-mute">PROJECT: THE UNDERGROUND · 이 이야기는 가상의 사건·인물 설정이며 실제와 무관합니다.</p></footer>`;
+  <p class="foot-mute">PROJECT: THE UNDERGROUND · 이 이야기는 가상의 사건·인물 설정이며 실제와 무관합니다.</p>
+  <p class="foot-mute mono" style="font-size:10px;letter-spacing:.15em">${APP_VER}</p></footer>`;
 
 function header(sub) {
   const sc = S.team ? computeScore(S.team, S.events, S.config) : null;
@@ -588,6 +589,13 @@ function showBadgePopup() {
 function renderRoomsIntro() {
   $app.innerHTML = `<div>${header()}<div class="panel p-8 text-center mute">수사 준비 중…</div></div>`;
 }
+const last6 = () => S.team && S.team.roundIdx === 5;
+function askYes(text) {
+  return new Promise(res => { const box = document.createElement("div"); box.className = "modal"; box.style.zIndex = 140;
+    box.innerHTML = `<div class="panel p-6 max-w-sm w-full text-center"><p class="text-lg mb-5">${esc(text)}</p><div class="flex gap-2"><button class="btn btn-line flex-1" data-y="0">아직이요</button><button class="btn btn-gold flex-1" data-y="1">네, 받았어요</button></div></div>`;
+    box.addEventListener("click", e => { const y = e.target.closest("[data-y]"); if (!y) return; e.stopPropagation(); box.remove(); res(y.dataset.y === "1"); });
+    document.body.appendChild(box); });
+}
 function renderRooms() {
   const r = curRoom(), rs = roomState(r), last = S.team.roundIdx === 5;
   const roundTag = `<span class="mute">ROUND ${S.team.roundIdx + 1}/6</span>`;
@@ -612,8 +620,8 @@ function renderRooms() {
         <div class="mb-4"><span class="tag">EVIDENCE #0${r} · ${ok ? "SOLVED" : "UNSOLVED"}</span></div>
         <div class="caption text-4xl mb-3" style="color:${ok ? "var(--gold2)" : "#f0b4ac"}">${ok ? "정답 확인!" : "시간 종료 · 미해결"}</div>
         <p class="text-xl mb-2">${last ? "교사에게 <b class='gold'>증거 봉투와 극비 파일 봉투</b>를 요청하세요" : "교사에게 <b class='gold'>증거 봉투</b>를 요청하세요"}</p>
-        <p class="mute">선생님이 대시보드에서 [전달 완료]를 누르면 다음 방 안내가 나타납니다.</p>
-        ${DB.live ? "" : `<button class="btn btn-line mt-5" data-act="demoDeliver">체험용 · 교사 전달 완료 처리</button>`}
+        <p class="mute">봉투를 받으면 아래 버튼을 누르세요. (선생님이 대시보드에서 [전달 완료]를 눌러도 넘어갑니다)</p>
+        <button class="btn btn-gold mt-5 text-lg px-8" data-act="gotEnvelope">${last ? "봉투를 모두 받았어요" : "증거 봉투를 받았어요"}</button>
         <div class="mt-6 inline-block px-5 py-3 rounded-xl" style="background:#2a2017">${ROOM_NAMES[r]} 점수 <b class="gold">${computeScore(S.team, S.events, S.config).rooms[r].score}점</b></div>
       </div>${disclaimer}</div>`;
     return;
@@ -1206,6 +1214,8 @@ document.addEventListener("click", async e => {
   if (a === "key") { S.msg = ""; if ((S.input[k] || "").length < maxLen) S.input[k] = (S.input[k] || "") + v; return setDisp(S.input[k].toUpperCase(), "코드를 입력하세요"); }
   if (a === "back") { S.input[k] = (S.input[k] || "").slice(0, -1); return setDisp(S.input[k].toUpperCase(), "코드를 입력하세요"); }
   if (a === "clear") { S.input[k] = ""; return setDisp("", "코드를 입력하세요"); }
+  if (a === "gotEnvelope") { const rr = curRoom(); if (!(await askYes(last6() ? "증거 봉투와 극비 파일 봉투를 받았나요?" : "선생님께 증거 봉투를 받았나요?"))) return;
+    return DB.update("teams/" + S.teamId, { [`rooms.${rr}.delivered`]: true }); }
   if (a === "demoDeliver") { const rr = curRoom(); await DB.update(`requests/${S.teamId}_${rr}`, { status: "done" }).catch(() => {}); return DB.update("teams/" + S.teamId, { [`rooms.${rr}.delivered`]: true }); }
   if (a === "submit") return submitCode(b.dataset.code);
   if (a === "hint") return openHint(+b.dataset.m, +b.dataset.l);

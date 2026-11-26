@@ -37,7 +37,7 @@
 <body>
 <div id="app" class="max-w-7xl mx-auto p-4"></div>
 <div id="modal"></div>
-<footer style="text-align:center;font-size:12px;color:#9c8a71;padding:20px 16px 28px;border-top:1px solid #3a2c1f;margin-top:24px"><div style="letter-spacing:.1em;color:#c9b48a">교원학습공동체 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사</div><div style="margin-top:3px">여섯 교과 선생님들이 함께 만든 수사 본부 교사 대시보드 · PROJECT: THE UNDERGROUND</div></footer>
+<footer style="text-align:center;font-size:12px;color:#9c8a71;padding:20px 16px 28px;border-top:1px solid #3a2c1f;margin-top:24px"><div style="letter-spacing:.1em;color:#c9b48a">WS교수학습법연구회 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사</div><div style="margin-top:3px">여섯 교과 선생님들이 함께 만든 수사 본부 교사 대시보드 · PROJECT: THE UNDERGROUND</div><div id="verTag" style="margin-top:3px;font-family:monospace;font-size:10px;letter-spacing:.15em;opacity:.7"></div></footer>
 <script src="common.js"></script>
 <script type="module">
 
@@ -58,12 +58,13 @@ const roomStatusText = t => { const r = t.route[t.roundIdx], rs = (t.rooms || {}
 function render() {
   clearInterval(T.tick);
   if (!T.ok) return renderPin();
-  const openReqs = T.reqs.filter(q => q.status === "open" && (!T.room || q.room === T.room) && (!T.cls || q.cls === T.cls)).sort((a, b) => (a.at || 0) - (b.at || 0));
+  const delivered = q => { const tm = T.teams.find(x => x.id === q.teamId); return !tm || ((tm.rooms || {})[q.room] || {}).delivered; };
+  const openReqs = T.reqs.filter(q => q.status === "open" && !delivered(q) && (!T.room || q.room === T.room) && (!T.cls || q.cls === T.cls)).sort((a, b) => (a.at || 0) - (b.at || 0));
   $app.innerHTML = `
   <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
     <div><div class="text-xs gold tracking-[.3em]">TEACHER DASHBOARD</div><div class="serif text-2xl">THE UNDERGROUND</div></div>
     <div class="flex flex-wrap items-center gap-2 text-sm">
-      <button class="pill" style="border:1px solid rgba(200,70,58,.6);color:#f0a097;background:transparent;cursor:pointer" data-act="ending">▶ 범인 영상</button>
+      ${T.adminErr ? `<span class="pill" style="background:#4a1d18;color:#f0a097" title="${esc(T.adminErr)}">교사 권한 오류</span>` : ""}
       ${DB.live ? `<span class="pill" style="background:#20351f;color:#9fd3a5">Firebase 연결</span>` : `<span class="pill" style="background:#3a2c1f;color:var(--gold)">체험 모드</span>`}
       <select data-f="day">${[...new Set([todayKey(), ...T.teams.map(t => t.day)])].filter(Boolean).sort().map(d => `<option value="${d}" ${T.day === d ? "selected" : ""}>${d.slice(0, 2)}/${d.slice(2)}</option>`).join("")}<option value="" ${!T.day ? "selected" : ""}>전체 날짜</option></select>
       <select data-f="cls"><option value="0">전체 반</option>${[1, 2, 3, 4].map(c => `<option value="${c}" ${T.cls === c ? "selected" : ""}>${c}반</option>`).join("")}</select>
@@ -82,12 +83,12 @@ function render() {
     </div>
     ${classDone()}
     <div class="panel overflow-x-auto"><table>
-      <thead><tr><th>반·모둠</th><th>팀장 / 팀원</th><th>현재</th><th>남은 시간</th><th>완료 방</th><th>힌트</th><th>오답</th><th>점수</th><th>최종 코드</th><th></th></tr></thead>
+      <thead><tr><th>반·모둠</th><th>팀장 / 팀원</th><th>현재</th><th>남은 시간</th><th>방 결과</th><th>힌트</th><th>오답</th><th>점수</th><th>최종 코드</th><th></th></tr></thead>
       <tbody>${teamsView().map(t => { const sc = computeScore(t, evOf(t.id), T.config); const rm = remain(t); const [fs, fc] = finalState(t);
         return `<tr><td class="font-bold whitespace-nowrap">${t.cls}반 ${t.group}모둠</td><td><div>${esc(t.leader)}</div><div class="text-xs mute">${esc(t.members)}</div></td>
         <td class="whitespace-nowrap">${roomStatusText(t)}<div class="text-xs mute">ROUND ${t.roundIdx + 1}/6</div></td>
         <td class="tabular-nums font-bold" data-timer="${t.id}" style="${rm != null && rm <= 60 ? "color:var(--red)" : ""}">${rm == null ? "-" : fmt(rm)}</td>
-        <td>${sc.done}/6${sc.unsolved ? ` <span class="pill" style="background:#3b1d19;color:#f0b4ac">미해결 ${sc.unsolved}</span>` : ""}</td>
+        <td class="whitespace-nowrap">해결 ${sc.done - sc.unsolved}${sc.unsolved ? ` <span class="pill" style="background:#3b1d19;color:#f0b4ac">미해결 ${sc.unsolved}</span>` : ""}<div class="text-xs mute">${sc.done}/6 방 종료</div></td>
         <td>${sc.hints}</td><td>${sc.wrongs}</td><td class="font-bold gold">${sc.sum + sc.finalScore - (sc.fail ? 150 : 0) + Number(t.scoreAdjust || 0)}</td>
         <td><span style="color:${fc}" class="text-sm font-semibold">${fs}</span></td>
         <td><button class="btn btn-line text-xs" data-act="manage" data-id="${t.id}">관리</button></td></tr>`; }).join("") || `<tr><td colspan="10" class="mute text-center py-8">등록된 모둠이 없습니다.</td></tr>`}</tbody></table></div>
@@ -154,6 +155,8 @@ function manage(id) {
       <div><div class="mute mb-1">시간 보정 · ${ROOM_NAMES[r]} (분, +는 연장)</div><div class="flex gap-2"><input id="tadj" type="number" class="w-28" value="1"><button class="btn btn-line" data-act="adjTime" data-id="${id}">적용</button></div></div>
       <div><div class="mute mb-1">진행 방 수동 변경</div><div class="flex gap-2"><select id="round">${t.route.map((x, i) => `<option value="${i}" ${i === t.roundIdx ? "selected" : ""}>ROUND ${i + 1} · ${ROOM_NAMES[x]}</option>`).join("")}</select><button class="btn btn-line" data-act="setRound" data-id="${id}">이동</button></div>
         <div class="text-xs mute mt-1">이동한 방이 '시작 전'이 되도록 그 방 기록은 유지됩니다.</div></div>
+      <div><div class="mute mb-1">멈춘 모둠 진행시키기 · 지금 ${ROOM_NAMES[r]}</div><div class="flex flex-wrap gap-2"><button class="btn btn-gold" data-act="pushNext" data-id="${id}">${t.roundIdx >= 5 ? "체포 영장 단계로 보내기" : "다음 방으로 보내기"}</button><button class="btn btn-line" data-act="toHome" data-id="${id}">처음 화면으로 (등록 해제)</button></div>
+        <div class="text-xs mute mt-1">다음 방으로: 지금 방이 끝나지 않았으면 '미해결(50점)'로 처리하고 넘깁니다. 처음 화면으로: 이 모둠 기록을 지우고 태블릿을 표지 화면으로 돌립니다.</div></div>
       <div class="pt-3 border-t" style="border-color:var(--line)"><button class="btn btn-red" data-act="reset" data-id="${id}">기록 초기화</button> <span class="text-xs mute">리허설·오류 복구용. 점수·힌트·오답이 모두 지워집니다.</span></div>
     </div></div></div>`;
 }
@@ -164,17 +167,44 @@ async function wipe(scope) {
   const what = scope === "all" ? `전체 ${list.length}개 모둠` : `${T.day ? T.day.slice(0, 2) + "/" + T.day.slice(2) + " " : ""}${cls}반 ${list.length}개 모둠`;
   if (!(await uiConfirm(`${what}의 기록을 모두 지울까요? 되돌릴 수 없습니다.`))) return;
   if (!(await uiConfirm("정말 지울까요? (CSV를 저장해 두셨나요?)"))) return;
-  const msg = document.getElementById("wipeMsg"); let n = 0;
+  const msg = document.getElementById("wipeMsg"); let n = 0, fail = 0, lastErr = "";
+  const del = p => DB.del(p).catch(e => { fail++; lastErr = (e && (e.code || e.message)) || String(e); });
   for (const tm of list) {
     msg.textContent = `삭제 중… ${++n}/${list.length}`;
-    const evs = await DB.listCol(`teams/${tm.id}/events`).catch(() => []);
-    for (const e of evs) await DB.del(`teams/${tm.id}/events/${e.id}`).catch(() => {});
-    for (const q of T.reqs.filter(q => q.teamId === tm.id)) await DB.del("requests/" + q.id).catch(() => {});
-    await DB.del("teams/" + tm.id).catch(() => {});
+    let evs = []; try { evs = await DB.listCol(`teams/${tm.id}/events`); } catch (e) { fail++; lastErr = e.code || e.message; }
+    for (const e of evs) await del(`teams/${tm.id}/events/${e.id}`);
+    for (const q of T.reqs.filter(q => q.teamId === tm.id)) await del("requests/" + q.id);
+    await del("teams/" + tm.id);
   }
-  if (scope === "all") for (const q of T.reqs) await DB.del("requests/" + q.id).catch(() => {});
-  T.wipeMsg = `<span style="color:var(--green)">${what}의 기록을 지웠습니다.</span>`; render();
+  if (scope === "all") for (const q of T.reqs) await del("requests/" + q.id);
+  T.wipeMsg = fail ? `<span style="color:var(--red)">일부를 지우지 못했습니다 (${fail}건 · ${esc(lastErr)}). 교사 PIN으로 다시 들어온 뒤 시도해 주세요.</span>`
+    : `<span style="color:var(--green)">${what}의 기록을 지웠습니다.</span>`;
+  if (fail && /permission/i.test(lastErr)) { await becomeAdmin(); }
+  render();
 }
+async function pushNext(id) {
+  const t = T.teams.find(x => x.id === id); if (!t) return;
+  const r = t.route[t.roundIdx], rs = (t.rooms || {})[r] || {};
+  if (!(await uiConfirm(`${t.cls}반 ${t.group}모둠을 ${t.roundIdx >= 5 ? "체포 영장 단계로" : ROOM_NAMES[t.route[t.roundIdx + 1]] + "(으)로"} 보낼까요?${rs.status === "solved" || rs.status === "timeout" ? "" : ` ${ROOM_NAMES[r]}은 미해결(50점)로 처리됩니다.`}`))) return;
+  try {
+    const patch = { [`rooms.${r}.delivered`]: true };
+    if (rs.status !== "solved" && rs.status !== "timeout") { patch[`rooms.${r}.status`] = "timeout"; patch[`rooms.${r}.endAt`] = DB.TS; await DB.create(`teams/${id}/events/timeout_${r}`, { teamId: id, type: "timeout", room: r, at: DB.TS }); }
+    if (t.roundIdx >= 5) patch.stage = "warrant"; else { patch.roundIdx = t.roundIdx + 1; patch.stage = "rooms"; }
+    await DB.update("teams/" + id, patch);
+    const q = T.reqs.find(x => x.teamId === id && x.room === r); if (q) await DB.update("requests/" + q.id, { status: "done", doneAt: DB.TS }).catch(() => {});
+    $modal.innerHTML = ""; render();
+  } catch (e) { alertErr(e); }
+}
+async function toHome(id) {
+  const t = T.teams.find(x => x.id === id); if (!t) return;
+  if (!(await uiConfirm(`${t.cls}반 ${t.group}모둠의 기록을 지우고 처음 화면으로 돌릴까요?`))) return;
+  try {
+    const evs = await DB.listCol(`teams/${id}/events`); for (const e of evs) await DB.del(`teams/${id}/events/${e.id}`);
+    for (const q of T.reqs.filter(q => q.teamId === id)) await DB.del("requests/" + q.id);
+    await DB.del("teams/" + id); $modal.innerHTML = ""; render();
+  } catch (e) { alertErr(e); }
+}
+function alertErr(e) { const m = (e && (e.code || e.message)) || String(e); uiConfirm(`처리하지 못했습니다: ${m}${/permission/i.test(m) ? " — 교사 권한이 없습니다. PIN으로 다시 들어오거나 Firebase 규칙 게시를 확인해 주세요." : ""}`); }
 async function resetTeam(id) {
   if (!(await uiConfirm("이 모둠의 모든 기록을 지울까요?"))) return;
   const evs = await DB.listCol(`teams/${id}/events`);
@@ -201,7 +231,7 @@ function ending() {
       : src ? `<video id="endVid" src="${esc(src)}" poster="ending_poster.jpg" controls autoplay playsinline></video>`
       : `<div class="p-6 rounded-xl max-w-3xl" style="background:#241b13"><div class="gold font-bold mb-3">영상이 없습니다 · 대체 낭독 멘트</div><p class="leading-loose text-lg serif">"네, 제가 그날 밤 지하에 내려갔습니다.<br>저는 도박으로 큰 빚을 졌습니다. 갚을 방법이 없던 차에, 지하 서고 금고에 수십억 원이 있다는 공지를 봤습니다. 개봉 전에 그 돈을 가져가면 아무도 모를 거라고 생각했습니다.<br>하지만 서고 구조를 몰라서 통로를 세 번이나 잘못 들어갔고, 금고를 열던 중에 경보가 울렸습니다. 아무것도 가져가지 못한 채 도망쳤습니다.<br>발자국, 가죽 섬유, 텀블러, 만년필 잉크까지 남기고 왔으니, 학생들이 찾아낸 것이 당연합니다.<br>그 돈은 100년 전 초대 교장 선생님이 학교를 지키려고 모아 둔 돈입니다. 제가 쓸 돈이 아니었습니다.<br>금고는 예정대로 재단 입회하에 열릴 겁니다. 이상입니다."</p></div>`}</div></div>`;
   const v = document.getElementById("endVid");
-  if (v) { v.play().catch(() => {}); v.addEventListener("ended", () => { const st = document.querySelector("#endOv .end-stage"); if (st) st.innerHTML = `<div class="end-close"><div class="end-stamp">사건 종결<small>CASE CLOSED</small></div><div class="text-xl mt-6">진범 · SUSPECT F · LUNAR L</div><div class="serif text-4xl mt-4">명예 수사관 여러분, 수고하셨습니다.</div><div class="mute mt-4">교원학습공동체 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사</div></div>`; }); }
+  if (v) { v.play().catch(() => {}); v.addEventListener("ended", () => { const st = document.querySelector("#endOv .end-stage"); if (st) st.innerHTML = `<div class="end-close"><div class="end-stamp">사건 종결<small>CASE CLOSED</small></div><div class="text-xl mt-6">진범 · SUSPECT F · LUNAR L</div><div class="serif text-4xl mt-4">명예 수사관 여러분, 수고하셨습니다.</div><div class="mute mt-4">${CREW} 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사</div></div>`; }); }
 }
 /* ---------- 설정 ---------- */
 function renderSettings() {
@@ -276,7 +306,7 @@ async function enterPin(v) {
   if (h !== PIN_HASH) { document.getElementById("pmsg").textContent = "PIN이 다릅니다"; return; }
   LS.session.setItem("ug_pin_ok", "1"); T.ok = true; await becomeAdmin(); start();
 }
-async function becomeAdmin() { try { await DB.set("admins/" + DB.uid, { key: PIN_HASH, at: DB.TS }); } catch (e) { console.warn("admin", e); } }
+async function becomeAdmin() { try { const ex = await DB.get("admins/" + DB.uid).catch(() => null); if (!ex) await DB.set("admins/" + DB.uid, { key: PIN_HASH, at: DB.TS }); T.adminErr = ""; } catch (e) { console.warn("admin", e); T.adminErr = (e && (e.code || e.message)) || "admin"; } }
 
 /* ---------- 이벤트 ---------- */
 document.addEventListener("click", async e => {
@@ -285,12 +315,14 @@ document.addEventListener("click", async e => {
   if (a === "pin") return enterPin(document.getElementById("pin").value);
   if (a === "tab") { if (T.tab === "settings") readSettingsForm(); T.tab = b.dataset.v; return render(); }
   if (a === "close") { if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {}); $modal.innerHTML = ""; if (T.tab !== "settings") render(); return; }
-  if (a === "deliver") { const q = T.reqs.find(x => x.id === id); await DB.update("requests/" + id, { status: "done", doneAt: DB.TS }); if (q) await DB.update("teams/" + q.teamId, { [`rooms.${q.room}.delivered`]: true }); return; }
+  if (a === "deliver") { const q = T.reqs.find(x => x.id === id); try { if (q) await DB.update("teams/" + q.teamId, { [`rooms.${q.room}.delivered`]: true }); await DB.update("requests/" + id, { status: "done", doneAt: DB.TS }); } catch (e) { alertErr(e); } return; }
   if (a === "manage") return manage(id);
   if (a === "adjScore") { const t = T.teams.find(x => x.id === id); await DB.update("teams/" + id, { scoreAdjust: Number(t.scoreAdjust || 0) + Number(document.getElementById("adj").value || 0) }); $modal.innerHTML = ""; return; }
   if (a === "adjTime") { const t = T.teams.find(x => x.id === id), r = t.route[t.roundIdx], cur = Number(((t.rooms || {})[r] || {}).adjust || 0); await DB.update("teams/" + id, { [`rooms.${r}.adjust`]: cur + Number(document.getElementById("tadj").value || 0) * 60 }); $modal.innerHTML = ""; return; }
   if (a === "setRound") { await DB.update("teams/" + id, { roundIdx: Number(document.getElementById("round").value), stage: "rooms" }); $modal.innerHTML = ""; return; }
   if (a === "reset") return resetTeam(id);
+  if (a === "pushNext") return pushNext(id);
+  if (a === "toHome") return toHome(id);
   if (a === "board") { const n = document.getElementById("bnotice"); await DB.set("board/main", { mode: b.dataset.v, cls: T.cls || 0, ...(n && n.value.trim() ? { notice: n.value.trim() } : {}), at: DB.now() }, true); b.textContent = "✓ " + b.textContent.replace(/^✓ /, ""); return; }
   if (a === "ending") return ending();
   if (a === "endFs") { const el = document.getElementById("endOv"); if (!document.fullscreenElement) el?.requestFullscreen?.().catch(() => {}); else document.exitFullscreen?.(); return; }
@@ -318,6 +350,7 @@ function start() {
   DB.watchDoc("config/main", c => { T.rawConfig = c; T.config = mergeConfig(c); if (T.tab !== "settings") safeRender(); });
 }
 (async () => {
+  const vt = document.getElementById("verTag"); if (vt) vt.textContent = APP_VER;
   $app.innerHTML = `<div class="text-center mute p-10">접속 중…</div>`;
   await DB.init();
   if (T.ok) { await becomeAdmin(); start(); } else render();
