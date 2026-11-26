@@ -192,6 +192,9 @@
   .dev .led{width:9px;height:9px;border-radius:50%;background:#e2483a;box-shadow:0 0 9px #e2483a}
   .dev .dev-name{font-weight:800;font-size:15px}
   .dev .dev-code{margin-left:auto;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.2em;opacity:.7}
+  .dev .dev-name,.dev .dev-head>button,.dev .dev-head>*:not(.dev-code){white-space:nowrap;flex:none}
+  .dev .dev-head>button~.dev-code{display:none}
+  .dev .dev-code{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 0;text-align:right}
   .dev .dev-label{font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.14em;opacity:.75;margin:0 0 6px 2px}
   .screw{position:absolute;width:11px;height:11px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#d6d9de,#5b5f66);box-shadow:inset 0 0 0 1px rgba(0,0,0,.5);z-index:1}
   .screw::after{content:"";position:absolute;left:2px;right:2px;top:4.5px;height:2px;background:rgba(0,0,0,.55);transform:rotate(35deg)}
@@ -291,6 +294,27 @@
     .dev{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;align-items:start}
     .dev>i{position:absolute}
     .dev .dev-r .dev-go{margin-top:10px!important}
+    .dev{align-items:stretch}
+    .dev>.dev-l,.dev>.dev-r{display:flex;flex-direction:column;min-width:0}
+    .dev>.dev-l>.dev-head+*{margin-top:auto}.dev>.dev-l>.cmsg{margin-bottom:auto}
+    .dev-pad .disp-wrap{zoom:1.3}
+    .dev-dial .wheel{zoom:1.35}
+    .dev-dial .dev-l>.dev-head+*{margin-top:0}
+    .dev>.dev-r{justify-content:center}
+    .dev-order>.dev-r{justify-content:space-between}
+    .dev-order .ordkeys{flex:1;grid-auto-rows:1fr;align-content:stretch}
+    .dev-order .ok-it{height:auto!important;min-height:0}
+    .dev.dev-switch{display:block}
+    .dev-switch .cmsg{min-height:0;margin:6px 0 0}
+    .rv-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:10px}.rv-row:empty{display:none}.rv-row>.reveal.rv-after{margin:12px 0 0}
+    .dev.dev-dial{display:block}
+    .dev-dial .dev-r{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+    .dev-dial .dev-r .dial-hint{margin:0}.dev-dial .dev-r .dev-go{margin-top:0!important;min-height:56px}
+    .dev-dial .cmsg{min-height:0;margin:6px 0 0}
+    .dev-switch .dev-r{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:10px;align-items:stretch;margin-top:12px}
+    .dev-switch .dev-r .dial-hint{grid-column:1/-1;margin:0}
+    .dev-switch .dev-r .tbar{margin:0;display:flex}.dev-switch .dev-r .tbar>*{flex:1;height:auto;min-height:56px}
+    .dev-switch .dev-r .dev-go{margin-top:0!important}
     .room-grid{grid-template-columns:minmax(0,7fr) minmax(0,3fr)!important}
     .reveal.mono-r .reveal-b{font-size:17px!important;line-height:1.2!important}
     .reveal .reveal-b{font-size:14px}
@@ -314,6 +338,7 @@
   /* 6구 배전반 */
   .dev-switch{background:linear-gradient(180deg,#5b6066,#3b3f44);border:2px solid #23262a;color:#f2f2f2;box-shadow:inset 0 0 0 4px #4a4f55,0 14px 30px rgba(0,0,0,.6);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.03) 0 6px,transparent 6px 12px),linear-gradient(180deg,#5b6066,#3b3f44)}
   .dev-switch .led{background:#ffb020;box-shadow:0 0 9px #ffb020}
+  .dev-switch .sw{zoom:1.5}
   .brk{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;border-radius:6px;padding:14px 8px 10px;border:3px solid #111;
     background:linear-gradient(180deg,#2b2f34,#1a1d21);box-shadow:inset 0 0 18px #000,inset 0 2px 0 rgba(255,255,255,.05);position:relative}
   .brk.ok{box-shadow:inset 0 0 18px #000,0 0 22px rgba(90,240,138,.55)}
@@ -339,7 +364,7 @@
   .brk.boot .sw-lamp{animation:bootLamp .5s both}
   @keyframes bootLamp{0%{filter:brightness(.2)}40%{filter:brightness(2.2)}100%{filter:none}}
   .sw b{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.05em}.sw i{font-style:normal;font-size:10px;opacity:.7;font-family:"IBM Plex Mono",monospace}
-  .sw2{background:linear-gradient(180deg,#6b7076,#44484d)!important;color:#fff!important;border-color:#23262a!important}
+  .sw2{background:linear-gradient(180deg,#6b7076,#44484d)!important;color:#fff!important;border-color:#23262a!important;box-shadow:0 3px 0 #1c1e21!important}
   /* 연혁 복원대 */
   .dev-order{background:linear-gradient(180deg,#3b2a1a,#24180d);border:2px solid #120a04;color:#f3e3c2;box-shadow:0 14px 30px rgba(0,0,0,.6);
     background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.12) 0 3px,transparent 3px 22px),linear-gradient(180deg,#4a3420,#24180d)}
@@ -493,8 +518,10 @@ const remaining = r => { const rs = roomState(r); if (!rs.startAt) return ROOM_S
 
 function screenKey() { const t = S.team; if (!t) return "login"; const rs = t.route ? ((t.rooms || {})[t.route[t.roundIdx]] || {}) : {}; return [t.stage, t.roundIdx, rs.status, rs.delivered, t.finalUnlocked, t.finalResult].join("|"); }
 function fitApp() {   // 내용이 화면보다 크면 #app 전체를 축소해 스크롤 없이 한 화면에
-  const a = $app; if (!a) return; a.style.zoom = 1;
+  const a = $app; if (!a) return; a.style.zoom = 1; a.style.paddingTop = "";
   const H = window.innerHeight, h = document.documentElement.scrollHeight;
+  const ch = a.offsetHeight;   // 실제 내용 높이 (문서 높이는 화면보다 작아지지 않으므로 #app 기준)
+  if (ch < H - 8) { const pt = parseFloat(getComputedStyle(a).paddingTop) || 0; a.style.paddingTop = (pt + Math.floor((H - ch) / 2)) + "px"; return; }   // 내용이 짧으면 화면 가운데로
   if (h > H + 1) { let z = Math.max(0.55, (H - 4) / h); a.style.zoom = z;
     for (let i = 0; i < 3; i++) { const h2 = document.documentElement.scrollHeight; if (h2 <= H + 1 || z <= 0.55) break; z = Math.max(0.55, z * (H - 4) / h2); a.style.zoom = z; } }
 }
@@ -872,8 +899,8 @@ function renderRoomPlay(r, rs) {
       </div>
       ${codes.length > 1 ? `<div class="flex gap-2 mb-3">${codes.map(c => `<div class="text-xs px-3 py-1 rounded-full ${c === active ? "btn-gold" : ""}" style="${c === active ? "" : "border:1px solid var(--line)"}">${esc(c.label)}${!c.main && subsDone[c.id] ? " ✓" : ""}</div>`).join("")}</div>` : ""}
       ${device(active.ui || (!active.main && ROOM_UI[r + "sub"] ? r + "sub" : r), { label: active.label + " 입력", len: active.len, value: val.toUpperCase(), alpha, items: active.items, ph: "코드를 입력하세요" }, { key: "key", back: "back", clear: "clear", submit: "submit", code: active.id, label: "제출", disabled: S.busy, field: r + ":" + active.id })}
-      ${rc.note ? `<div class="reveal rv-after"><div class="reveal-h">▣ 수사 안내</div><div class="reveal-b">${esc(rc.note)}</div></div>` : ""}
-      ${reveals.map(c => `<div class="reveal rv-after ${c.revealMono ? "mono-r" : ""}"><div class="reveal-h">▣ 수신된 단서 · ${esc(c.label)}</div><div class="reveal-b">${esc(c.reveal)}</div></div>`).join("")}
+      <div class="rv-row">${rc.note ? `<div class="reveal rv-after"><div class="reveal-h">▣ 수사 안내</div><div class="reveal-b">${esc(rc.note)}</div></div>` : ""}
+      ${reveals.map(c => `<div class="reveal rv-after ${c.revealMono ? "mono-r" : ""}"><div class="reveal-h">▣ 수신된 단서 · ${esc(c.label)}</div><div class="reveal-b">${esc(c.reveal)}</div></div>`).join("")}</div>
     </div>
     <div class="md:col-span-2 space-y-4">
       ${noHints ? `<div class="panel p-5"><div class="font-bold mb-2">수사 본부 통신</div><p class="text-sm mute leading-relaxed">이 방은 <b class="gold">힌트가 없습니다.</b> 모둠원과 함께 활동지의 단서를 끝까지 추리하세요.${rc.wrongLock ? `<br>오답을 입력하면 <b style="color:var(--red)">${rc.wrongLock}초 동안</b> 입력할 수 없어요.` : ""}</p></div>` : `<div class="panel p-5">
@@ -998,7 +1025,7 @@ function renderFinal() {
     const showPlain = S.eyeUntil > Date.now();
     $app.innerHTML = `<div class="fade">${header()}
     <div class="grid md:grid-cols-2 gap-4">
-      <div class="panel p-6">
+      <div class="panel p-6" style="display:flex;flex-direction:column;justify-content:center">
         <div class="tape mb-5"></div>
         <div class="eyebrow mb-1">Final Mission</div>
         <h2 class="caption text-3xl mb-4">체포 영장 작성</h2>
@@ -1021,7 +1048,7 @@ function renderFinal() {
   const v = S.input.final || "";
   const left = 2 - (t.finalTries || 0);
   $app.innerHTML = `<div class="fade">${header()}
-  <div class="panel p-6 sm:p-8 max-w-xl mx-auto">
+  <div class="panel p-6 sm:p-8 max-w-3xl mx-auto">
     <div class="eyebrow mb-1">Final Code</div>
     <h2 class="caption text-3xl mb-2">범인의 사물함 번호</h2>
     <p class="mb-4">남은 기회 <b class="gold text-2xl">${left}</b>번</p>
@@ -1300,6 +1327,7 @@ function attachTeam() {
   DB.watchDoc("config/main", c => { S.config = mergeConfig(c); if (S.team && !$modal.innerHTML) render(); });
   if (S.teamId) attachTeam(); else render();
 })();
+if (location.search.includes("qa=1")) window.__ug = { DB, S };   // 화면 점검용
 </script>
 </body>
 </html>
