@@ -78,6 +78,8 @@
   /* notice / standby / ending */
   .center{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:3vh}
   .notice{font-family:"Gowun Batang",serif;font-weight:700;font-size:5vw;line-height:1.35;max-width:85vw;text-shadow:0 0 40px rgba(217,164,65,.25);white-space:pre-wrap}
+  .ov-stamp{font-family:"Noto Serif KR",serif;font-weight:900;font-size:6vw;color:#e0453a;border:.5vw double #e0453a;padding:1vh 3vw;transform:rotate(-6deg);display:flex;flex-direction:column;align-items:center;animation:stamp .5s cubic-bezier(.2,1.6,.4,1)}
+  .ov-stamp small{font-family:"Special Elite",monospace;font-size:1.4vw;letter-spacing:.4em}
   .sb-ey{font-family:"IBM Plex Mono",monospace;letter-spacing:.6em;font-size:1.4vw;color:var(--gold)}
   .sb-tt{font-family:"Gowun Batang",serif;font-weight:700;font-size:6vw;letter-spacing:-.02em;text-shadow:0 0 50px rgba(217,164,65,.35)}
   .sb-sub{font-size:1.8vw;color:var(--mute)}
@@ -98,7 +100,7 @@
   /* toolbar */
   .tb{position:fixed;left:50%;bottom:1.4vh;transform:translateX(-50%);z-index:60;display:flex;gap:6px;align-items:center;background:rgba(15,10,6,.92);border:1px solid var(--line);border-radius:10px;padding:8px 10px;transition:opacity .4s,transform .4s;font-size:14px}
   .tb.hide{opacity:0;transform:translate(-50%,20px);pointer-events:none}
-  .tb button,.tb select{background:rgba(36,26,18,.95);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 11px;font:inherit;cursor:pointer}
+  .tb button,.tb select{white-space:nowrap;background:rgba(36,26,18,.95);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:7px 11px;font:inherit;cursor:pointer}
   .tb button.on{background:linear-gradient(180deg,#e9b955,#c48d2f);color:#1a1108;font-weight:700}
   .tb .sep{width:1px;height:24px;background:var(--line);margin:0 4px}
   .ft{display:flex;justify-content:center;align-items:center;gap:.8vw;margin-top:1.2vh;font-size:.85vw;color:var(--mute);letter-spacing:.08em}
@@ -207,7 +209,7 @@ function videoHTML(url, poster) {
 function viewVideo(kind) {
   const url = kind === "ending" ? B.config.endingVideo : B.config.introVideo;
   if (kind === "ending" && !(url || "").trim()) return viewScript();
-  const v = videoHTML(url, kind === "intro" ? "intro_poster.jpg" : "");
+  const v = videoHTML(url, kind === "intro" ? "intro_poster.jpg" : "ending_poster.jpg").replace("▶ 사건 브리핑 재생", kind === "intro" ? "▶ 사건 브리핑 재생" : "▶ 범인의 자백 재생");
   return `<div class="vwrap">${v || `<div class="empty">설정에 영상이 없습니다</div>`}</div>`;
 }
 function viewScript() {
@@ -231,12 +233,20 @@ function render(force) {
   const html = B.mode === "status" ? viewStatus() : B.mode === "rank" ? viewRank() : B.mode === "intro" ? viewVideo("intro") : B.mode === "ending" ? viewVideo("ending") : B.mode === "notice" ? viewNotice() : viewStandby();
   if (key !== B.lastKey || force || B.mode !== "rank") { $app.innerHTML = html + toolbar(); }
   if (key !== B.lastKey && B.mode === "ending" && !(B.config.endingVideo || "").trim()) typeScript();
-  if (key !== B.lastKey && B.mode === "intro") setTimeout(() => playVid(), 300);
+  if (key !== B.lastKey && (B.mode === "intro" || B.mode === "ending")) setTimeout(() => playVid(), 300);
+  if (key !== B.lastKey && B.mode === "ending") setTimeout(() => { const v = document.getElementById("bv"); if (v) v.addEventListener("ended", () => { if (B.mode === "ending") showClosing(); }); }, 350);
   B.lastKey = key; showTb();
 }
 let typer = null;
 function typeScript() { clearInterval(typer); let i = 0; typer = setInterval(() => { const el = document.getElementById("script"); if (!el) return clearInterval(typer); i += 1; el.innerHTML = esc(ENDING_SCRIPT.slice(0, i)) + `<span class="cur">&nbsp;</span>`; if (i % 3 === 0) tone(2400 + Math.random() * 300, .012, "square", .015); if (i >= ENDING_SCRIPT.length) clearInterval(typer); }, 55); }
-function playVid() { const v = document.getElementById("bv"); if (!v) return; const ok = () => { const bp = $app.querySelector(".bigplay"); bp && bp.remove(); };
+function showClosing() {
+  $app.innerHTML = `<div class="center"><div class="ov-stamp">사건 종결<small>CASE CLOSED</small></div>
+    <div class="sb-sub" style="color:var(--ink)">진범 · SUSPECT F · LUNAR L</div>
+    <div class="notice" style="font-size:3.6vw">명예 수사관 여러분, 수고하셨습니다.</div>
+    <div class="sb-sub" style="font-size:1.4vw">교원학습공동체 합동수사본부 · 국어 · 영어 · 과학 · 기술 · 가정 · 역사</div></div>` + toolbar();
+  sfxWin();
+}
+function playVid() { const v = document.getElementById("bv"); if (!v) return; const ok = () => { $app.querySelectorAll(".bigplay").forEach(x => x.remove()); };
   v.muted = false; v.play().then(ok).catch(() => { v.muted = true; v.play().then(() => { ok(); $app.querySelector(".vwrap").insertAdjacentHTML("beforeend", `<div class="bigplay" data-act="unmuteB" style="inset:auto 2vw 2vh auto;background:none"><span style="font-size:1.4vw">🔊 소리 켜기</span></div>`); }).catch(() => {}); }); }
 
 /* ---- 실시간 이벤트 연출 ---- */

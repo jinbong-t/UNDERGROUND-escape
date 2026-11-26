@@ -22,7 +22,7 @@ const ROOM_NAMES = { 1: "국어실", 2: "영어실", 3: "과학실", 4: "기술�
 const DEFAULT_CONFIG = {
   version: 3,
   introVideo: "intro.mp4",   // 웹앱과 같은 폴더의 영상 파일 또는 YouTube 링크
-  endingVideo: "",
+  endingVideo: "ending.mp4",   // 엔딩(범인 자백) 영상
   rooms: {
     1: { keypad: "num", wrongLock: 10, codes: [{ id: "main", label: "비밀번호", main: true, len: 8, hash: "ced3c0730637a131ff44cf5021a5474008add6585a75b6990586e26a5033be5d" }],
          missions: [{ name: "CH.1 · 올바른 접속어를 찾아라", h1: "", h2: "" }, { name: "CH.2 · 올바른 단어를 찾아라", h1: "", h2: "" }] },
@@ -93,6 +93,8 @@ function mergeConfig(c) {
   const out = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
   const old = (c.version || 1) < DEFAULT_CONFIG.version;   // 활동지 개정 전 설정이면 코드·힌트는 새 기본값 사용
   Object.assign(out, c);
+  if (!String(out.introVideo || "").trim()) out.introVideo = DEFAULT_CONFIG.introVideo;
+  if (!String(out.endingVideo || "").trim()) out.endingVideo = DEFAULT_CONFIG.endingVideo;
   if (old) { out.rooms = JSON.parse(JSON.stringify(DEFAULT_CONFIG.rooms)); out.finalHash = DEFAULT_CONFIG.finalHash; out.version = DEFAULT_CONFIG.version; }
   return out;
 }

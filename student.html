@@ -1122,7 +1122,7 @@ function renderResult() {
       : `<div class="eyebrow mb-2" style="color:var(--red)">Case Open</div><div class="caption text-4xl mb-6">범인을 놓쳤습니다</div>`}
     <div><div class="rank-seal ${ok ? "" : "fail"} ${fresh ? "slam" : ""}"><small>CASE 1926-14</small><b>${sc.grade}</b><small>${ok ? "검거 완료" : "수사 미결"}</small></div></div>
     <div class="text-xl mb-4">총점 <b id="cnt" class="mono" style="font-size:28px;color:var(--gold2)">0</b> / 700</div>
-    <p class="mute">엔딩 영상은 선생님과 함께 봅니다.</p></div>
+    <p class="mute">모든 모둠의 수사가 끝나면, 선생님과 함께 <b class="gold">최종 범인 영상</b>을 봅니다.</p></div>
   </div>
   <div class="panel p-5"><div class="grid grid-cols-3 sm:grid-cols-7 gap-2 text-center text-sm">
     ${S.team.route.map((r, i) => `<div class="rounded-lg p-2 pop" style="background:#241b13;animation-delay:${1.2 + i * .12}s"><div class="mute">${ROOM_NAMES[r]}</div><div class="font-bold">${sc.rooms[r].score ?? "-"}</div></div>`).join("")}
