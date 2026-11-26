@@ -1184,10 +1184,10 @@ document.addEventListener("click", async e => {
   if (a === "goTeacher") { location.href = "teacher.html"; return; }   // 숨은 입구: 푸터 '가정' → 교사 대시보드(PIN 필요)
   if (a === "goBoard") { location.href = "board.html"; return; }       // 숨은 입구: 푸터 '기술' → 교실 현황판
   if (a === "unmute") { const v = document.getElementById("introVid"); if (v) { v.muted = false; v.play().catch(() => {}); } b.remove(); return; }
-  if (a === "title") return teacherPin();
+  if (a === "title") { location.href = "teacher.html"; return; }   // 교사 화면에서 PIN을 받음
   if (a === "sfx") { SFX.toggle(); return render(); }
   if (a === "pkey") { if ((S.input.pin || "").length < 8) S.input.pin = (S.input.pin || "") + v; const pd = document.getElementById("pdisp"); if (pd) pd.textContent = "●".repeat(S.input.pin.length); return; }
-  if (a === "pgo") { if ((await hashCode("pin", S.input.pin)) === PIN_HASH) { LS.session.setItem("ug_pin_ok", "1"); location.href = "teacher.html"; } else { S.input.pin = ""; S.drawPin(); document.getElementById("pmsg").textContent = "PIN이 다릅니다"; } return; }
+  if (a === "pgo") { if ((await hashCode("pin", S.input.pin)) === PIN_HASH) { location.href = "teacher.html"; } else { S.input.pin = ""; S.drawPin(); document.getElementById("pmsg").textContent = "PIN이 다릅니다"; } return; }
   if (a === "cls") { S.login.cls = +v; S.login.leader = document.getElementById("leader").value; S.login.members = document.getElementById("members").value; return render(); }
   if (a === "grp") { S.login.group = +v; S.login.leader = document.getElementById("leader").value; S.login.members = document.getElementById("members").value; return render(); }
   if (a === "login") return doLogin();

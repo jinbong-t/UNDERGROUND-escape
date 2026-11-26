@@ -43,7 +43,7 @@
 
 
 /* ================= 교사 대시보드 ================= */
-const T = { ok: LS.session.getItem("ug_pin_ok") === "1", tab: "live", teams: [], events: [], reqs: [], config: mergeConfig(null), rawConfig: null,
+const T = { ok: false /* 매번 PIN 확인 */, tab: "live", teams: [], events: [], reqs: [], config: mergeConfig(null), rawConfig: null,
   cls: 0, room: 0, day: todayKey(), pin: "", edit: null, tick: null, lastReqCount: 0 };
 const $app = document.getElementById("app"), $modal = document.getElementById("modal");
 const evOf = id => T.events.filter(e => e.teamId === id);
@@ -304,7 +304,7 @@ function renderPin() {
 async function enterPin(v) {
   const h = await hashCode("pin", v);
   if (h !== PIN_HASH) { document.getElementById("pmsg").textContent = "PIN이 다릅니다"; return; }
-  LS.session.setItem("ug_pin_ok", "1"); T.ok = true; await becomeAdmin(); start();
+  T.ok = true; await becomeAdmin(); start();
 }
 async function becomeAdmin() { try { const ex = await DB.get("admins/" + DB.uid).catch(() => null); if (!ex) await DB.set("admins/" + DB.uid, { key: PIN_HASH, at: DB.TS }); T.adminErr = ""; } catch (e) { console.warn("admin", e); T.adminErr = (e && (e.code || e.message)) || "admin"; } }
 
